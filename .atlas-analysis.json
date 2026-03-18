@@ -1,0 +1,203 @@
+{
+  "projectType": "framework",
+  "projectName": "Next.js",
+  "projectDescription": "Next.js is a React framework for building full-stack web applications with server-side rendering, static site generation, and the App Router.",
+  "theme": "palm",
+  "primaryColor": "#7c7c7c",
+  "lightColor": "#070707",
+  "darkColor": "#c4c4c4",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "App Router",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "app/getting-started/introduction",
+              "app/getting-started/installation",
+              "app/getting-started/project-structure",
+              "app/getting-started/layouts-and-pages",
+              "app/getting-started/linking-and-navigating",
+              "app/getting-started/server-and-client-components",
+              "app/getting-started/fetching-data",
+              "app/getting-started/mutating-data",
+              "app/getting-started/caching",
+              "app/getting-started/error-handling",
+              "app/getting-started/deploying"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "app/guides/authentication",
+              "app/guides/forms",
+              "app/guides/environment-variables",
+              "app/guides/self-hosting",
+              "app/guides/static-exports",
+              "app/guides/internationalization",
+              "app/guides/testing",
+              "app/guides/debugging",
+              "app/guides/incremental-static-regeneration",
+              "app/guides/streaming",
+              "app/guides/lazy-loading",
+              "app/guides/redirecting",
+              "app/guides/mdx",
+              "app/guides/sass",
+              "app/guides/scripts",
+              "app/guides/open-telemetry",
+              "app/guides/production-checklist"
+            ]
+          },
+          {
+            "group": "API Reference",
+            "pages": [
+              "app/api-reference/overview",
+              "app/api-reference/components/image",
+              "app/api-reference/components/link",
+              "app/api-reference/components/font",
+              "app/api-reference/components/form",
+              "app/api-reference/components/script",
+              "app/api-reference/file-conventions/layout",
+              "app/api-reference/file-conventions/page",
+              "app/api-reference/file-conventions/loading",
+              "app/api-reference/file-conventions/error",
+              "app/api-reference/file-conventions/not-found",
+              "app/api-reference/file-conventions/route",
+              "app/api-reference/functions/cookies",
+              "app/api-reference/functions/headers",
+              "app/api-reference/functions/redirect",
+              "app/api-reference/functions/use-router",
+              "app/api-reference/functions/use-pathname",
+              "app/api-reference/functions/use-params",
+              "app/api-reference/functions/fetch",
+              "app/api-reference/functions/generate-static-params",
+              "app/api-reference/functions/generate-metadata",
+              "app/api-reference/functions/revalidate-path",
+              "app/api-reference/functions/revalidate-tag",
+              "app/api-reference/directives/use-client",
+              "app/api-reference/directives/use-server",
+              "app/api-reference/directives/use-cache",
+              "app/api-reference/config/next-config-js",
+              "app/api-reference/config/typescript",
+              "app/api-reference/config/eslint",
+              "app/api-reference/cli/create-next-app",
+              "app/api-reference/cli/next",
+              "app/api-reference/edge",
+              "app/api-reference/turbopack"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Pages Router",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "pages/getting-started/introduction",
+              "pages/getting-started/installation",
+              "pages/getting-started/project-structure",
+              "pages/getting-started/deploying"
+            ]
+          },
+          {
+            "group": "Building Your Application",
+            "pages": [
+              "pages/building/routing",
+              "pages/building/rendering",
+              "pages/building/data-fetching",
+              "pages/building/configuring"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "pages/guides/authentication",
+              "pages/guides/environment-variables",
+              "pages/guides/self-hosting",
+              "pages/guides/static-exports",
+              "pages/guides/internationalization",
+              "pages/guides/testing",
+              "pages/guides/debugging",
+              "pages/guides/incremental-static-regeneration",
+              "pages/guides/redirecting",
+              "pages/guides/mdx",
+              "pages/guides/sass",
+              "pages/guides/forms",
+              "pages/guides/production-checklist"
+            ]
+          },
+          {
+            "group": "API Reference",
+            "pages": [
+              "pages/api-reference/overview",
+              "pages/api-reference/components/image",
+              "pages/api-reference/components/link",
+              "pages/api-reference/components/font",
+              "pages/api-reference/components/script",
+              "pages/api-reference/file-conventions/document",
+              "pages/api-reference/file-conventions/app",
+              "pages/api-reference/functions/get-server-side-props",
+              "pages/api-reference/functions/get-static-props",
+              "pages/api-reference/functions/get-static-paths",
+              "pages/api-reference/functions/use-router",
+              "pages/api-reference/config/next-config-js"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Architecture",
+        "groups": [
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "architecture/overview",
+              "architecture/nextjs-compiler",
+              "architecture/fast-refresh",
+              "architecture/supported-browsers",
+              "architecture/accessibility"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "App Router with React Server Components and nested layouts",
+    "Pages Router for traditional file-system based routing",
+    "Server-side rendering (SSR) and static site generation (SSG)",
+    "Incremental Static Regeneration (ISR) for updating static pages",
+    "Built-in image, font, and script optimization components",
+    "Turbopack bundler for fast development and builds",
+    "Server Actions for form handling and server-side mutations",
+    "Route Handlers for building API endpoints",
+    "Streaming and Suspense support for progressive rendering",
+    "Built-in support for TypeScript, CSS Modules, Sass, and Tailwind CSS",
+    "Middleware for request/response transformation",
+    "Edge Runtime support for globally distributed functions",
+    "use cache directive for fine-grained caching control",
+    "Internationalization (i18n) routing support"
+  ],
+  "publicApiSurface": [
+    "next/image - Image optimization component",
+    "next/link - Client-side navigation Link component",
+    "next/font - Font optimization with zero layout shift",
+    "next/script - Script loading optimization component",
+    "next/headers - cookies() and headers() server utilities",
+    "next/navigation - useRouter, usePathname, useSearchParams, useParams hooks",
+    "next/cache - revalidatePath, revalidateTag cache control functions",
+    "next/server - NextRequest, NextResponse, middleware utilities",
+    "next/og - ImageResponse for Open Graph image generation",
+    "useRouter() - Pages Router navigation hook",
+    "getServerSideProps() - Server-side data fetching",
+    "getStaticProps() - Static site generation data fetching",
+    "getStaticPaths() - Dynamic route path generation",
+    "generateStaticParams() - App Router static params generation",
+    "generateMetadata() - Dynamic metadata generation",
+    "next.config.js / next.config.ts - Framework configuration",
+    "create-next-app CLI - Project scaffolding tool",
+    "next build / next dev / next start CLI commands"
+  ]
+}
