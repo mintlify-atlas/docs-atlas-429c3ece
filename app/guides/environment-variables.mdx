@@ -1,0 +1,272 @@
+---
+title: Environment Variables
+description: Learn to add and access environment variables in your Next.js application, including browser-exposed variables and runtime variables.
+---
+
+Next.js comes with built-in support for environment variables, which allows you to do the following:
+
+- Use `.env` to load environment variables
+- Bundle environment variables for the browser by prefixing with `NEXT_PUBLIC_`
+
+<Warning>
+  The default `create-next-app` template ensures all `.env` files are added to your `.gitignore`. You almost never want to commit these files to your repository.
+</Warning>
+
+## Loading environment variables
+
+Next.js has built-in support for loading environment variables from `.env*` files into `process.env`.
+
+```txt filename=".env"
+DB_HOST=localhost
+DB_USER=myuser
+DB_PASS=mypassword
+```
+
+This loads `process.env.DB_HOST`, `process.env.DB_USER`, and `process.env.DB_PASS` into the Node.js environment automatically, allowing you to use them in Route Handlers:
+
+```js filename="app/api/route.js"
+export async function GET() {
+  const db = await myDB.connect({
+    host: process.env.DB_HOST,
+    username: process.env.DB_USER,
+    password: process.env.DB_PASS,
+  })
+  // ...
+}
+```
+
+<Note>
+  Next.js also supports multiline variables inside of your `.env*` files:
+
+  ```bash
+  # .env
+  PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----
+  ...
+  Kh9NV...
+  ...
+  -----END DSA PRIVATE KEY-----"
+
+  # or with `\n` inside double quotes
+  PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----\nKh9NV...\n-----END DSA PRIVATE KEY-----\n"
+  ```
+
+  If you are using a `/src` folder, Next.js will load the `.env` files **only** from the parent folder and **not** from the `/src` folder.
+</Note>
+
+### Loading environment variables with `@next/env`
+
+If you need to load environment variables outside of the Next.js runtime, such as in a root config file for an ORM or test runner, you can use the `@next/env` package.
+
+<Steps>
+  <Step title="Install the package">
+    <CodeGroup>
+      ```bash npm
+      npm install @next/env
+      ```
+      ```bash yarn
+      yarn add @next/env
+      ```
+      ```bash pnpm
+      pnpm add @next/env
+      ```
+      ```bash bun
+      bun add @next/env
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Use loadEnvConfig">
+    <Tabs>
+      <Tab title="TypeScript">
+        ```tsx filename="envConfig.ts"
+        import { loadEnvConfig } from '@next/env'
+
+        const projectDir = process.cwd()
+        loadEnvConfig(projectDir)
+        ```
+      </Tab>
+      <Tab title="JavaScript">
+        ```jsx filename="envConfig.js"
+        import { loadEnvConfig } from '@next/env'
+
+        const projectDir = process.cwd()
+        loadEnvConfig(projectDir)
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Import in config files">
+    <Tabs>
+      <Tab title="TypeScript">
+        ```tsx filename="orm.config.ts"
+        import './envConfig.ts'
+
+        export default defineConfig({
+          dbCredentials: {
+            connectionString: process.env.DATABASE_URL!,
+          },
+        })
+        ```
+      </Tab>
+      <Tab title="JavaScript">
+        ```jsx filename="orm.config.js"
+        import './envConfig.js'
+
+        export default defineConfig({
+          dbCredentials: {
+            connectionString: process.env.DATABASE_URL,
+          },
+        })
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+</Steps>
+
+### Referencing other variables
+
+Next.js will automatically expand variables that use `$` to reference other variables inside your `.env*` files:
+
+```txt filename=".env"
+TWITTER_USER=nextjs
+TWITTER_URL=https://x.com/$TWITTER_USER
+```
+
+In the above example, `process.env.TWITTER_URL` would be set to `https://x.com/nextjs`.
+
+<Note>
+  If you need to use a variable with a `$` in the actual value, it needs to be escaped, e.g. `\$`.
+</Note>
+
+## Bundling environment variables for the browser
+
+Non-`NEXT_PUBLIC_` environment variables are only available in the Node.js environment, meaning they aren't accessible to the browser.
+
+In order to make the value of an environment variable accessible in the browser, Next.js can "inline" a value at build time into the JS bundle delivered to the client, replacing all references to `process.env.[variable]` with a hard-coded value. To tell it to do this, prefix the variable with `NEXT_PUBLIC_`:
+
+```txt filename=".env"
+NEXT_PUBLIC_ANALYTICS_ID=abcdefghijk
+```
+
+This will tell Next.js to replace all references to `process.env.NEXT_PUBLIC_ANALYTICS_ID` in the Node.js environment with the value from the environment in which you run `next build`:
+
+```js filename="pages/index.js"
+import setupAnalyticsService from '../lib/my-analytics-service'
+
+// 'NEXT_PUBLIC_ANALYTICS_ID' can be used here as it's prefixed by 'NEXT_PUBLIC_'.
+// It will be transformed at build time to `setupAnalyticsService('abcdefghijk')`.
+setupAnalyticsService(process.env.NEXT_PUBLIC_ANALYTICS_ID)
+
+function HomePage() {
+  return <h1>Hello World</h1>
+}
+
+export default HomePage
+```
+
+Note that dynamic lookups will _not_ be inlined:
+
+```js
+// This will NOT be inlined, because it uses a variable
+const varName = 'NEXT_PUBLIC_ANALYTICS_ID'
+setupAnalyticsService(process.env[varName])
+
+// This will NOT be inlined, because it uses a variable
+const env = process.env
+setupAnalyticsService(env.NEXT_PUBLIC_ANALYTICS_ID)
+```
+
+<Warning>
+  After being built, your app will no longer respond to changes to these environment variables. If you need access to runtime environment values, you'll have to set up your own API to provide them to the client.
+</Warning>
+
+### Runtime environment variables
+
+Next.js can support both build time and runtime environment variables.
+
+**By default, environment variables are only available on the server.** To expose an environment variable to the browser, it must be prefixed with `NEXT_PUBLIC_`. However, these public environment variables will be inlined into the JavaScript bundle during `next build`.
+
+You can safely read environment variables on the server during dynamic rendering:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```tsx filename="app/page.ts"
+    import { connection } from 'next/server'
+
+    export default async function Component() {
+      await connection()
+      // cookies, headers, and other Request-time APIs
+      // will also opt into dynamic rendering, meaning
+      // this env variable is evaluated at runtime
+      const value = process.env.MY_VALUE
+      // ...
+    }
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```jsx filename="app/page.js"
+    import { connection } from 'next/server'
+
+    export default async function Component() {
+      await connection()
+      // cookies, headers, and other Request-time APIs
+      // will also opt into dynamic rendering, meaning
+      // this env variable is evaluated at runtime
+      const value = process.env.MY_VALUE
+      // ...
+    }
+    ```
+  </Tab>
+</Tabs>
+
+This allows you to use a singular Docker image that can be promoted through multiple environments with different values.
+
+## Test environment variables
+
+Apart from `development` and `production` environments, there is a 3rd option available: `test`. You can set defaults for the `testing` environment with a `.env.test` file.
+
+Next.js will not load environment variables from `.env.development` or `.env.production` in the `testing` environment.
+
+<Note>
+  `.env.local` won't be loaded in the test environment, as you expect tests to produce the same results for everyone. This way every test execution will use the same env defaults across different executions by ignoring your `.env.local`.
+</Note>
+
+While running unit tests you can make sure to load your environment variables the same way Next.js does by leveraging the `loadEnvConfig` function from the `@next/env` package:
+
+```js
+// The below can be used in a Jest global setup file or similar for your testing set-up
+import { loadEnvConfig } from '@next/env'
+
+export default async () => {
+  const projectDir = process.cwd()
+  loadEnvConfig(projectDir)
+}
+```
+
+## Environment variable load order
+
+Environment variables are looked up in the following places, in order, stopping once the variable is found:
+
+1. `process.env`
+2. `.env.$(NODE_ENV).local`
+3. `.env.local` (not checked when `NODE_ENV` is `test`)
+4. `.env.$(NODE_ENV)`
+5. `.env`
+
+For example, if `NODE_ENV` is `development` and you define a variable in both `.env.development.local` and `.env`, the value in `.env.development.local` will be used.
+
+<Note>
+  The allowed values for `NODE_ENV` are `production`, `development` and `test`.
+</Note>
+
+## Good to know
+
+- If you are using a `/src` directory, `.env.*` files should remain in the root of your project.
+- If the environment variable `NODE_ENV` is unassigned, Next.js automatically assigns `development` when running the `next dev` command, or `production` for all other commands.
+
+## Version history
+
+| Version  | Changes                                       |
+| -------- | --------------------------------------------- |
+| `v9.4.0` | Support `.env` and `NEXT_PUBLIC_` introduced. |

@@ -1,0 +1,181 @@
+---
+title: getStaticPaths
+description: API reference for getStaticPaths. Learn how to fetch data and generate static pages with dynamic routes.
+---
+
+When exporting `getStaticPaths` from a page that uses [Dynamic Routes](/pages/building/routing#dynamic-routes), Next.js will statically pre-render all paths specified by `getStaticPaths`.
+
+## Example
+
+```tsx filename="pages/repo/[name].tsx"
+import type {
+  InferGetStaticPropsType,
+  GetStaticProps,
+  GetStaticPaths,
+} from 'next'
+
+type Repo = {
+  name: string
+  stargazers_count: number
+}
+
+export const getStaticPaths = (async () => {
+  return {
+    paths: [
+      {
+        params: {
+          name: 'next.js',
+        },
+      },
+    ],
+    fallback: true,
+  }
+}) satisfies GetStaticPaths
+
+export const getStaticProps = (async (context) => {
+  const res = await fetch('https://api.github.com/repos/vercel/next.js')
+  const repo = await res.json()
+  return { props: { repo } }
+}) satisfies GetStaticProps<{
+  repo: Repo
+}>
+
+export default function Page({
+  repo,
+}: InferGetStaticPropsType<typeof getStaticProps>) {
+  return repo.stargazers_count
+}
+```
+
+## Return values
+
+The `getStaticPaths` function must return an object with:
+
+### `paths`
+
+Determines which paths will be pre-rendered:
+
+```js
+return {
+  paths: [
+    { params: { id: '1' } },
+    {
+      params: { id: '2' },
+      locale: 'en', // optional, for i18n
+    },
+  ],
+  fallback: ...
+}
+```
+
+The `params` values must match the dynamic segment names in the page file:
+
+- For `pages/posts/[postId]/[commentId]`, `params` must contain `postId` and `commentId`
+- For catch-all routes like `pages/[...slug]`, `params` must contain `slug` as an array
+- For optional catch-all `pages/[[...slug]]`, supply `slug: false` to render the root route
+
+### `fallback: false`
+
+Paths not returned by `getStaticPaths` result in a **404 page**.
+
+```jsx filename="pages/posts/[id].js"
+export async function getStaticPaths() {
+  const res = await fetch('https://.../posts')
+  const posts = await res.json()
+
+  const paths = posts.map((post) => ({
+    params: { id: post.id },
+  }))
+
+  return { paths, fallback: false }
+}
+```
+
+Use when you have a small number of paths to create and new data is not added often.
+
+### `fallback: true`
+
+Paths not generated at build time serve a fallback version on first request. Next.js generates the page in the background and caches it for subsequent requests.
+
+Use `router.isFallback` to detect the fallback state:
+
+```jsx filename="pages/posts/[id].js"
+import { useRouter } from 'next/router'
+
+function Post({ post }) {
+  const router = useRouter()
+
+  if (router.isFallback) {
+    return <div>Loading...</div>
+  }
+
+  return <h1>{post.title}</h1>
+}
+
+export async function getStaticPaths() {
+  return {
+    paths: [{ params: { id: '1' } }, { params: { id: '2' } }],
+    fallback: true,
+  }
+}
+
+export async function getStaticProps({ params }) {
+  const res = await fetch(`https://.../posts/${params.id}`)
+  const post = await res.json()
+
+  return {
+    props: { post },
+    revalidate: 1,
+  }
+}
+
+export default Post
+```
+
+### `fallback: 'blocking'`
+
+New paths not returned by `getStaticPaths` wait for HTML generation (similar to SSR), then cache for future requests.
+
+<Note>
+  `fallback: true` and `fallback: 'blocking'` are not supported with `output: 'export'`.
+</Note>
+
+## Generating paths on demand
+
+Defer generating all pages by returning an empty array for `paths`:
+
+```jsx filename="pages/posts/[id].js"
+export async function getStaticPaths() {
+  if (process.env.SKIP_BUILD_STATIC_GENERATION) {
+    return {
+      paths: [],
+      fallback: 'blocking',
+    }
+  }
+
+  const res = await fetch('https://.../posts')
+  const posts = await res.json()
+
+  const paths = posts.map((post) => ({
+    params: { id: post.id },
+  }))
+
+  return { paths, fallback: false }
+}
+```
+
+## Restrictions
+
+- `getStaticPaths` **must** be used with `getStaticProps`
+- Cannot be used with `getServerSideProps`
+- Can only be exported from a dynamic route that also uses `getStaticProps`
+- Cannot be exported from non-page files (e.g., components folder)
+
+## Version history
+
+| Version | Changes |
+|---------|---------|
+| `v13.4.0` | App Router is now stable with `generateStaticParams()` |
+| `v12.2.0` | On-Demand ISR is stable |
+| `v9.5.0` | Stable ISR |
+| `v9.3.0` | `getStaticPaths` introduced |

@@ -1,0 +1,123 @@
+---
+title: revalidatePath
+description: API reference for the revalidatePath function, which invalidates cached data on-demand for a specific path.
+---
+
+`revalidatePath` invalidates [cached data](/app/getting-started/caching) on-demand for a specific path.
+
+## Usage
+
+`revalidatePath` can be called in Server Functions and Route Handlers. It cannot be called in Client Components or Proxy.
+
+```tsx filename="app/actions.ts"
+'use server'
+
+import { revalidatePath } from 'next/cache'
+
+export default async function submit() {
+  await submitForm()
+  revalidatePath('/')
+}
+```
+
+## Parameters
+
+```tsx
+revalidatePath(path: string, type?: 'page' | 'layout'): void
+```
+
+<ParamField path="path" type="string" required>
+  The path to revalidate. Can be a literal path like `/product/123` or a route pattern with dynamic segments like `/product/[slug]`. Must not exceed 1024 characters. Case-sensitive. No trailing slash needed.
+</ParamField>
+
+<ParamField path="type" type="'page' | 'layout'">
+  The type of path to revalidate. Required if `path` contains a dynamic segment. Omit for literal paths.
+
+  - `'page'`: Invalidates all pages matching the route pattern.
+  - `'layout'`: Invalidates the layout at that segment, all nested layouts, and all pages beneath.
+</ParamField>
+
+## Returns
+
+`revalidatePath` does not return a value.
+
+## What can be invalidated
+
+- **Pages**: Invalidates the specific page.
+- **Layouts**: Invalidates the layout and all nested layouts and pages.
+- **Route Handlers**: Invalidates cached data accessed within route handlers.
+
+## Examples
+
+### Revalidating a specific path
+
+```ts
+import { revalidatePath } from 'next/cache'
+revalidatePath('/blog/post-1')
+```
+
+### Revalidating a page path
+
+```ts
+import { revalidatePath } from 'next/cache'
+revalidatePath('/blog/[slug]', 'page')
+// or with route groups
+revalidatePath('/(main)/blog/[slug]', 'page')
+```
+
+### Revalidating a layout path
+
+```ts
+import { revalidatePath } from 'next/cache'
+revalidatePath('/blog/[slug]', 'layout')
+```
+
+### Revalidating all data
+
+```ts
+import { revalidatePath } from 'next/cache'
+revalidatePath('/', 'layout')
+```
+
+This purges the Client Cache and invalidates all cached data.
+
+### Route Handler
+
+```ts filename="app/api/revalidate/route.ts"
+import { revalidatePath } from 'next/cache'
+import type { NextRequest } from 'next/server'
+
+export async function GET(request: NextRequest) {
+  const path = request.nextUrl.searchParams.get('path')
+
+  if (path) {
+    revalidatePath(path)
+    return Response.json({ revalidated: true, now: Date.now() })
+  }
+
+  return Response.json({
+    revalidated: false,
+    now: Date.now(),
+    message: 'Missing path to revalidate',
+  })
+}
+```
+
+## Using with rewrites
+
+When using rewrites, pass the **destination** path (the actual route file location), not the source path:
+
+```ts
+// Correct: use the destination path
+revalidatePath('/news')
+
+// Incorrect: the source path won't match the cache entry
+revalidatePath('/blog')
+```
+
+## Relationship with `revalidateTag`
+
+- **`revalidatePath`**: Invalidates a specific page or layout path.
+- **`revalidateTag`**: Marks data with specific tags as stale across all pages using those tags.
+
+Use them together for comprehensive data consistency.

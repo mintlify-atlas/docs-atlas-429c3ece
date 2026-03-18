@@ -1,0 +1,220 @@
+---
+title: Testing
+description: Learn how to set up Next.js with Cypress, Playwright, Vitest, and Jest for testing.
+---
+
+Next.js works with the most popular testing frameworks. This guide covers setup for four commonly used tools.
+
+## Jest and React Testing Library
+
+Jest and React Testing Library are frequently used together for unit and integration testing.
+
+<Steps>
+  <Step title="Install dependencies">
+    <CodeGroup>
+    ```bash npm
+    npm install --save-dev jest jest-environment-jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom ts-jest
+    ```
+    ```bash yarn
+    yarn add --dev jest jest-environment-jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom ts-jest
+    ```
+    ```bash pnpm
+    pnpm add -D jest jest-environment-jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom ts-jest
+    ```
+    </CodeGroup>
+  </Step>
+  <Step title="Create Jest configuration">
+    Run `npm init jest@latest` or create `jest.config.ts` manually:
+
+    ```ts filename="jest.config.ts"
+    import type { Config } from 'jest'
+    import nextJest from 'next/jest.js'
+
+    const createJestConfig = nextJest({
+      dir: './',
+    })
+
+    const config: Config = {
+      coverageProvider: 'v8',
+      testEnvironment: 'jsdom',
+      setupFilesAfterFramework: ['<rootDir>/jest.setup.ts'],
+    }
+
+    export default createJestConfig(config)
+    ```
+  </Step>
+  <Step title="Create setup file">
+    ```ts filename="jest.setup.ts"
+    import '@testing-library/jest-dom'
+    ```
+  </Step>
+  <Step title="Add test scripts to package.json">
+    ```json filename="package.json"
+    {
+      "scripts": {
+        "test": "jest",
+        "test:watch": "jest --watchAll"
+      }
+    }
+    ```
+  </Step>
+  <Step title="Write your first test">
+    ```tsx filename="__tests__/home.test.tsx"
+    import '@testing-library/jest-dom'
+    import { render, screen } from '@testing-library/react'
+    import Page from '../pages/index'
+
+    describe('Page', () => {
+      it('renders a heading', () => {
+        render(<Page />)
+        const heading = screen.getByRole('heading', { level: 1 })
+        expect(heading).toBeInTheDocument()
+      })
+    })
+    ```
+  </Step>
+</Steps>
+
+## Vitest
+
+Vitest is a fast unit test framework built on Vite.
+
+<Steps>
+  <Step title="Install dependencies">
+    <CodeGroup>
+    ```bash npm
+    npm install --save-dev vitest @vitejs/plugin-react jsdom @testing-library/react @testing-library/dom
+    ```
+    ```bash yarn
+    yarn add --dev vitest @vitejs/plugin-react jsdom @testing-library/react @testing-library/dom
+    ```
+    ```bash pnpm
+    pnpm add -D vitest @vitejs/plugin-react jsdom @testing-library/react @testing-library/dom
+    ```
+    </CodeGroup>
+  </Step>
+  <Step title="Create vitest.config.ts">
+    ```ts filename="vitest.config.ts"
+    import { defineConfig } from 'vitest/config'
+    import react from '@vitejs/plugin-react'
+
+    export default defineConfig({
+      plugins: [react()],
+      test: {
+        environment: 'jsdom',
+      },
+    })
+    ```
+  </Step>
+  <Step title="Add test script">
+    ```json filename="package.json"
+    {
+      "scripts": {
+        "test": "vitest"
+      }
+    }
+    ```
+  </Step>
+</Steps>
+
+## Cypress
+
+Cypress is used for End-to-End (E2E) testing.
+
+<Steps>
+  <Step title="Install Cypress">
+    <CodeGroup>
+    ```bash npm
+    npm install --save-dev cypress
+    ```
+    ```bash yarn
+    yarn add --dev cypress
+    ```
+    ```bash pnpm
+    pnpm add -D cypress
+    ```
+    </CodeGroup>
+  </Step>
+  <Step title="Add Cypress scripts">
+    ```json filename="package.json"
+    {
+      "scripts": {
+        "cypress": "cypress open",
+        "cypress:headless": "cypress run",
+        "e2e": "start-server-and-test dev http://localhost:3000 cypress",
+        "e2e:headless": "start-server-and-test dev http://localhost:3000 cypress:headless"
+      }
+    }
+    ```
+  </Step>
+  <Step title="Write your first E2E test">
+    ```ts filename="cypress/e2e/app.cy.ts"
+    describe('Navigation', () => {
+      it('should navigate to the about page', () => {
+        cy.visit('http://localhost:3000/')
+        cy.get('a[href*="about"]').click()
+        cy.url().should('include', '/about')
+        cy.get('h1').contains('About')
+      })
+    })
+    ```
+  </Step>
+</Steps>
+
+## Playwright
+
+Playwright lets you write E2E tests that run across Chromium, Firefox, and WebKit.
+
+<Steps>
+  <Step title="Install Playwright">
+    <CodeGroup>
+    ```bash npm
+    npm init playwright@latest
+    ```
+    ```bash yarn
+    yarn create playwright
+    ```
+    ```bash pnpm
+    pnpm create playwright
+    ```
+    </CodeGroup>
+  </Step>
+  <Step title="Configure Playwright">
+    ```ts filename="playwright.config.ts"
+    import { defineConfig, devices } from '@playwright/test'
+
+    const config = defineConfig({
+      testDir: './e2e',
+      fullyParallel: true,
+      reporter: 'html',
+      use: {
+        baseURL: 'http://localhost:3000',
+      },
+      projects: [
+        { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+        { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+        { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+      ],
+      webServer: {
+        command: 'npm run dev',
+        url: 'http://localhost:3000',
+        reuseExistingServer: !process.env.CI,
+      },
+    })
+
+    export default config
+    ```
+  </Step>
+  <Step title="Write your first test">
+    ```ts filename="e2e/example.spec.ts"
+    import { test, expect } from '@playwright/test'
+
+    test('should navigate to the about page', async ({ page }) => {
+      await page.goto('http://localhost:3000/')
+      await page.click('text=About')
+      await expect(page).toHaveURL('http://localhost:3000/about')
+      await expect(page.locator('h1')).toContainText('About')
+    })
+    ```
+  </Step>
+</Steps>

@@ -1,0 +1,145 @@
+---
+title: App Router API Reference
+description: Complete API reference for Next.js App Router, including components, file conventions, functions, directives, configuration, and CLI.
+---
+
+The App Router API Reference covers all the building blocks you need to build applications with Next.js. Use the sections below to navigate to specific APIs.
+
+## Components
+
+Next.js provides built-in components that you can use in your application.
+
+<CardGroup cols={2}>
+  <Card title="Image" href="/app/api-reference/components/image">
+    Optimized image component that extends the HTML `<img>` element with automatic image optimization.
+  </Card>
+  <Card title="Link" href="/app/api-reference/components/link">
+    Client-side navigation component that extends the HTML `<a>` element with prefetching.
+  </Card>
+  <Card title="Font" href="/app/api-reference/components/font">
+    Built-in font optimization with automatic self-hosting and no layout shift.
+  </Card>
+  <Card title="Form" href="/app/api-reference/components/form">
+    Extended form component with client-side navigation and progressive enhancement.
+  </Card>
+  <Card title="Script" href="/app/api-reference/components/script">
+    Optimize loading of third-party scripts with built-in loading strategies.
+  </Card>
+</CardGroup>
+
+## File Conventions
+
+Special files that define the structure and behavior of your application's routes.
+
+<CardGroup cols={2}>
+  <Card title="layout.js" href="/app/api-reference/file-conventions/layout">
+    Shared UI across routes, persists across navigations.
+  </Card>
+  <Card title="page.js" href="/app/api-reference/file-conventions/page">
+    Unique UI for a route, makes a segment publicly accessible.
+  </Card>
+  <Card title="loading.js" href="/app/api-reference/file-conventions/loading">
+    Loading UI shown while the route content is streaming in.
+  </Card>
+  <Card title="error.js" href="/app/api-reference/file-conventions/error">
+    Error boundary for a route segment with recovery UI.
+  </Card>
+  <Card title="not-found.js" href="/app/api-reference/file-conventions/not-found">
+    UI shown when the `notFound` function is called.
+  </Card>
+  <Card title="route.js" href="/app/api-reference/file-conventions/route">
+    Server-side Route Handlers built on Web Request/Response APIs.
+  </Card>
+</CardGroup>
+
+## Functions
+
+Next.js and React functions available in the App Router.
+
+<CardGroup cols={2}>
+  <Card title="cookies" href="/app/api-reference/functions/cookies">
+    Read and write HTTP cookies in Server Components and Route Handlers.
+  </Card>
+  <Card title="headers" href="/app/api-reference/functions/headers">
+    Read HTTP request headers in Server Components.
+  </Card>
+  <Card title="redirect" href="/app/api-reference/functions/redirect">
+    Redirect users to another URL from Server or Client Components.
+  </Card>
+  <Card title="useRouter" href="/app/api-reference/functions/use-router">
+    Programmatic navigation in Client Components.
+  </Card>
+  <Card title="usePathname" href="/app/api-reference/functions/use-pathname">
+    Read the current URL pathname in Client Components.
+  </Card>
+  <Card title="useParams" href="/app/api-reference/functions/use-params">
+    Read dynamic route parameters in Client Components.
+  </Card>
+  <Card title="fetch" href="/app/api-reference/functions/fetch">
+    Extended fetch with caching and revalidation options.
+  </Card>
+  <Card title="generateStaticParams" href="/app/api-reference/functions/generate-static-params">
+    Statically generate routes at build time for dynamic segments.
+  </Card>
+  <Card title="generateMetadata" href="/app/api-reference/functions/generate-metadata">
+    Define static or dynamic metadata for your pages.
+  </Card>
+  <Card title="revalidatePath" href="/app/api-reference/functions/revalidate-path">
+    Invalidate cached data on-demand for a specific path.
+  </Card>
+  <Card title="revalidateTag" href="/app/api-reference/functions/revalidate-tag">
+    Invalidate cached data on-demand for a specific cache tag.
+  </Card>
+</CardGroup>
+
+## Directives
+
+React directives that control how components are rendered.
+
+<CardGroup cols={2}>
+  <Card title="use client" href="/app/api-reference/directives/use-client">
+    Mark a component or file to render on the client side.
+  </Card>
+  <Card title="use server" href="/app/api-reference/directives/use-server">
+    Mark a function or file to execute on the server side.
+  </Card>
+  <Card title="use cache" href="/app/api-reference/directives/use-cache">
+    Cache the return value of a route, component, or function.
+  </Card>
+</CardGroup>
+
+## Configuration
+
+<CardGroup cols={2}>
+  <Card title="next.config.js" href="/app/api-reference/config/next-config-js">
+    Configure your Next.js application with `next.config.js`.
+  </Card>
+  <Card title="TypeScript" href="/app/api-reference/config/typescript">
+    TypeScript support and configuration in Next.js.
+  </Card>
+  <Card title="ESLint" href="/app/api-reference/config/eslint">
+    ESLint plugin and configuration for Next.js projects.
+  </Card>
+</CardGroup>
+
+## CLI
+
+<CardGroup cols={2}>
+  <Card title="create-next-app" href="/app/api-reference/cli/create-next-app">
+    Bootstrap a new Next.js application with a single command.
+  </Card>
+  <Card title="next CLI" href="/app/api-reference/cli/next">
+    Commands for developing, building, and starting your application.
+  </Card>
+</CardGroup>
+
+## Other
+
+<CardGroup cols={2}>
+  <Card title="Edge Runtime" href="/app/api-reference/edge">
+    Reference for the Edge Runtime APIs available in Next.js.
+  </Card>
+  <Card title="Turbopack" href="/app/api-reference/turbopack">
+    Rust-based incremental bundler built into Next.js.
+  </Card>
+</CardGroup>

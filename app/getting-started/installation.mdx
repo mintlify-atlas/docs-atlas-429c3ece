@@ -1,0 +1,238 @@
+---
+title: Installation
+description: Create a new Next.js application with create-next-app and set up TypeScript, ESLint, and path aliases.
+---
+
+Create a new Next.js app and run it locally.
+
+## System requirements
+
+- Node.js 20.9 or later
+- macOS, Windows (including WSL), or Linux
+
+## Quick start
+
+<Steps>
+  <Step title="Create a new project">
+    <CodeGroup>
+    ```bash npm
+    npx create-next-app@latest my-app --yes
+    ```
+    ```bash yarn
+    yarn create next-app my-app --yes
+    ```
+    ```bash pnpm
+    pnpm create next-app@latest my-app --yes
+    ```
+    ```bash bun
+    bun create next-app@latest my-app --yes
+    ```
+    </CodeGroup>
+
+    The `--yes` flag skips prompts using saved preferences or defaults. The default setup enables TypeScript, Tailwind CSS, ESLint, App Router, and Turbopack.
+  </Step>
+  <Step title="Start the development server">
+    ```bash
+    cd my-app
+    npm run dev
+    ```
+  </Step>
+  <Step title="Open your browser">
+    Visit [http://localhost:3000](http://localhost:3000) to see your application.
+  </Step>
+</Steps>
+
+## Create with the CLI
+
+To create a project with custom settings, run `create-next-app` without `--yes`:
+
+<CodeGroup>
+```bash npm
+npx create-next-app@latest
+```
+```bash yarn
+yarn create next-app
+```
+```bash pnpm
+pnpm create next-app
+```
+```bash bun
+bun create next-app
+```
+</CodeGroup>
+
+On installation, you'll see these prompts:
+
+```txt
+What is your project named? my-app
+Would you like to use the recommended Next.js defaults?
+    Yes, use recommended defaults - TypeScript, ESLint, Tailwind CSS, App Router, AGENTS.md
+    No, reuse previous settings
+    No, customize settings - Choose your own preferences
+```
+
+If you choose `customize settings`:
+
+```txt
+Would you like to use TypeScript? No / Yes
+Which linter would you like to use? ESLint / Biome / None
+Would you like to use React Compiler? No / Yes
+Would you like to use Tailwind CSS? No / Yes
+Would you like your code inside a src/ directory? No / Yes
+Would you like to use App Router? (recommended) No / Yes
+Would you like to customize the import alias (@/* by default)? No / Yes
+What import alias would you like configured? @/*
+```
+
+## Manual installation
+
+To manually create a new Next.js app, install the required packages:
+
+<CodeGroup>
+```bash npm
+npm i next@latest react@latest react-dom@latest
+```
+```bash yarn
+yarn add next@latest react@latest react-dom@latest
+```
+```bash pnpm
+pnpm add next@latest react@latest react-dom@latest
+```
+</CodeGroup>
+
+Add scripts to your `package.json`:
+
+```json package.json
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  }
+}
+```
+
+- `next dev` — Starts the development server using Turbopack (default bundler)
+- `next build` — Builds the application for production
+- `next start` — Starts the production server
+
+<Note>
+Turbopack is the default bundler. To use Webpack instead, run `next dev --webpack` or `next build --webpack`.
+</Note>
+
+### Create the `app` directory
+
+Create an `app` folder, then add a `layout.tsx` (root layout) and `page.tsx`:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```tsx app/layout.tsx
+    export default function RootLayout({
+      children,
+    }: {
+      children: React.ReactNode
+    }) {
+      return (
+        <html lang="en">
+          <body>{children}</body>
+        </html>
+      )
+    }
+    ```
+
+    ```tsx app/page.tsx
+    export default function Page() {
+      return <h1>Hello, Next.js!</h1>
+    }
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```jsx app/layout.js
+    export default function RootLayout({ children }) {
+      return (
+        <html lang="en">
+          <body>{children}</body>
+        </html>
+      )
+    }
+    ```
+
+    ```jsx app/page.js
+    export default function Page() {
+      return <h1>Hello, Next.js!</h1>
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Set up TypeScript
+
+Next.js has built-in TypeScript support. To add TypeScript, rename a file to `.ts` / `.tsx` and run `next dev`. Next.js will automatically install the necessary dependencies and add a `tsconfig.json`.
+
+### IDE Plugin
+
+Next.js includes a custom TypeScript plugin for VS Code that provides advanced type checking and auto-completion. Enable it:
+
+1. Open the command palette (`Ctrl/⌘ + Shift + P`)
+2. Search for "TypeScript: Select TypeScript Version"
+3. Select "Use Workspace Version"
+
+See the [TypeScript reference](/app/api-reference/config/typescript) for more information.
+
+## Set up linting
+
+Next.js supports ESLint or Biome:
+
+<Tabs>
+  <Tab title="ESLint">
+    ```json package.json
+    {
+      "scripts": {
+        "lint": "eslint",
+        "lint:fix": "eslint --fix"
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="Biome">
+    ```json package.json
+    {
+      "scripts": {
+        "lint": "biome check",
+        "format": "biome format --write"
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+Starting with Next.js 16, `next build` no longer runs the linter automatically. Run your linter through npm scripts instead.
+</Note>
+
+## Set up path aliases
+
+Next.js supports `paths` and `baseUrl` in `tsconfig.json` for module aliases:
+
+```json tsconfig.json
+{
+  "compilerOptions": {
+    "baseUrl": "src/",
+    "paths": {
+      "@/components/*": ["components/*"],
+      "@/styles/*": ["styles/*"]
+    }
+  }
+}
+```
+
+This lets you use clean imports:
+
+```tsx
+// Before
+import { Button } from '../../../components/button'
+
+// After
+import { Button } from '@/components/button'
+```

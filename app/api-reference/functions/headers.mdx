@@ -1,0 +1,78 @@
+---
+title: headers
+description: API reference for the headers function, which reads HTTP request headers in Server Components.
+---
+
+`headers` is an **async** function that reads HTTP incoming request headers from a [Server Component](/app/getting-started/server-and-client-components).
+
+```tsx filename="app/page.tsx"
+import { headers } from 'next/headers'
+
+export default async function Page() {
+  const headersList = await headers()
+  const userAgent = headersList.get('user-agent')
+}
+```
+
+## Parameters
+
+`headers` does not take any parameters.
+
+## Returns
+
+`headers` returns a **read-only** [Web Headers](https://developer.mozilla.org/docs/Web/API/Headers) object.
+
+<ResponseField name="Headers.entries()" type="iterator">
+  Returns an iterator over all key/value pairs.
+</ResponseField>
+
+<ResponseField name="Headers.forEach()" type="void">
+  Executes a provided function for each key/value pair.
+</ResponseField>
+
+<ResponseField name="Headers.get()" type="string">
+  Returns the string value of a header with a given name.
+</ResponseField>
+
+<ResponseField name="Headers.has()" type="boolean">
+  Returns `true` if the `Headers` object contains the named header.
+</ResponseField>
+
+<ResponseField name="Headers.keys()" type="iterator">
+  Returns an iterator over all keys.
+</ResponseField>
+
+<ResponseField name="Headers.values()" type="iterator">
+  Returns an iterator over all values.
+</ResponseField>
+
+## Good to know
+
+- `headers` is an **asynchronous** function returning a promise. Use `async/await` or React's `use` function.
+- Since `headers` is read-only, you cannot `set` or `delete` outgoing request headers.
+- `headers` is a request-time API. Using it opts the route into dynamic rendering.
+
+## Examples
+
+### Using the Authorization header
+
+```jsx filename="app/page.js"
+import { headers } from 'next/headers'
+
+export default async function Page() {
+  const authorization = (await headers()).get('authorization')
+  const res = await fetch('...', {
+    headers: { authorization }, // Forward the authorization header
+  })
+  const user = await res.json()
+
+  return <h1>{user.name}</h1>
+}
+```
+
+## Version history
+
+| Version | Changes |
+| --- | --- |
+| `v15.0.0-RC` | `headers` is now async. A codemod is available. |
+| `v13.0.0` | `headers` introduced. |

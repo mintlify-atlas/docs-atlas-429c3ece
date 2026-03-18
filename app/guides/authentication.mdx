@@ -1,0 +1,738 @@
+---
+title: Authentication
+description: Learn how to implement authentication in your Next.js application, covering session management, authorization, and auth libraries.
+---
+
+Understanding authentication is crucial for protecting your application's data. This page will guide you through what React and Next.js features to use to implement auth.
+
+Before starting, it helps to break down the process into three concepts:
+
+1. **Authentication**: Verifies if the user is who they say they are. It requires the user to prove their identity with something they have, such as a username and password.
+2. **Session Management**: Tracks the user's auth state across requests.
+3. **Authorization**: Decides what routes and data the user can access.
+
+The examples on this page walk through basic username and password auth for educational purposes. While you can implement a custom auth solution, for increased security and simplicity, we recommend using an authentication library. These offer built-in solutions for authentication, session management, and authorization, as well as additional features such as social logins, multi-factor authentication, and role-based access control.
+
+## Authentication
+
+### Sign-up and login functionality
+
+You can use the `<form>` element with React's Server Actions and `useActionState` to capture user credentials, validate form fields, and call your Authentication Provider's API or database.
+
+Since Server Actions always execute on the server, they provide a secure environment for handling authentication logic.
+
+Here are the steps to implement signup/login functionality:
+
+<Steps>
+  <Step title="Capture user credentials">
+    Create a form that invokes a Server Action on submission. For example, a signup form that accepts the user's name, email, and password:
+
+    <Tabs>
+      <Tab title="TypeScript">
+        ```tsx filename="app/ui/signup-form.tsx"
+        import { signup } from '@/app/actions/auth'
+
+        export function SignupForm() {
+          return (
+            <form action={signup}>
+              <div>
+                <label htmlFor="name">Name</label>
+                <input id="name" name="name" placeholder="Name" />
+              </div>
+              <div>
+                <label htmlFor="email">Email</label>
+                <input id="email" name="email" type="email" placeholder="Email" />
+              </div>
+              <div>
+                <label htmlFor="password">Password</label>
+                <input id="password" name="password" type="password" />
+              </div>
+              <button type="submit">Sign Up</button>
+            </form>
+          )
+        }
+        ```
+      </Tab>
+      <Tab title="JavaScript">
+        ```jsx filename="app/ui/signup-form.js"
+        import { signup } from '@/app/actions/auth'
+
+        export function SignupForm() {
+          return (
+            <form action={signup}>
+              <div>
+                <label htmlFor="name">Name</label>
+                <input id="name" name="name" placeholder="Name" />
+              </div>
+              <div>
+                <label htmlFor="email">Email</label>
+                <input id="email" name="email" type="email" placeholder="Email" />
+              </div>
+              <div>
+                <label htmlFor="password">Password</label>
+                <input id="password" name="password" type="password" />
+              </div>
+              <button type="submit">Sign Up</button>
+            </form>
+          )
+        }
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Validate form fields on the server">
+    Use the Server Action to validate the form fields on the server. Using Zod as an example, you can define a form schema with appropriate error messages:
+
+    <Tabs>
+      <Tab title="TypeScript">
+        ```ts filename="app/lib/definitions.ts"
+        import * as z from 'zod'
+
+        export const SignupFormSchema = z.object({
+          name: z
+            .string()
+            .min(2, { error: 'Name must be at least 2 characters long.' })
+            .trim(),
+          email: z.email({ error: 'Please enter a valid email.' }).trim(),
+          password: z
+            .string()
+            .min(8, { error: 'Be at least 8 characters long' })
+            .regex(/[a-zA-Z]/, { error: 'Contain at least one letter.' })
+            .regex(/[0-9]/, { error: 'Contain at least one number.' })
+            .regex(/[^a-zA-Z0-9]/, {
+              error: 'Contain at least one special character.',
+            })
+            .trim(),
+        })
+
+        export type FormState =
+          | {
+              errors?: {
+                name?: string[]
+                email?: string[]
+                password?: string[]
+              }
+              message?: string
+            }
+          | undefined
+        ```
+      </Tab>
+      <Tab title="JavaScript">
+        ```js filename="app/lib/definitions.js"
+        import * as z from 'zod'
+
+        export const SignupFormSchema = z.object({
+          name: z
+            .string()
+            .min(2, { error: 'Name must be at least 2 characters long.' })
+            .trim(),
+          email: z.email({ error: 'Please enter a valid email.' }).trim(),
+          password: z
+            .string()
+            .min(8, { error: 'Be at least 8 characters long' })
+            .regex(/[a-zA-Z]/, { error: 'Contain at least one letter.' })
+            .regex(/[0-9]/, { error: 'Contain at least one number.' })
+            .regex(/[^a-zA-Z0-9]/, {
+              error: 'Contain at least one special character.',
+            })
+            .trim(),
+        })
+        ```
+      </Tab>
+    </Tabs>
+
+    To prevent unnecessary calls to your authentication provider's API or database, you can `return` early in the Server Action if any form fields do not match the defined schema:
+
+    ```ts filename="app/actions/auth.ts"
+    import { SignupFormSchema, FormState } from '@/app/lib/definitions'
+
+    export async function signup(state: FormState, formData: FormData) {
+      // Validate form fields
+      const validatedFields = SignupFormSchema.safeParse({
+        name: formData.get('name'),
+        email: formData.get('email'),
+        password: formData.get('password'),
+      })
+
+      // If any form fields are invalid, return early
+      if (!validatedFields.success) {
+        return {
+          errors: validatedFields.error.flatten().fieldErrors,
+        }
+      }
+
+      // Call the provider or db to create a user...
+    }
+    ```
+
+    Back in your `<SignupForm />`, you can use React's `useActionState` hook to display validation errors while the form is submitting:
+
+    ```tsx filename="app/ui/signup-form.tsx"
+    'use client'
+
+    import { signup } from '@/app/actions/auth'
+    import { useActionState } from 'react'
+
+    export default function SignupForm() {
+      const [state, action, pending] = useActionState(signup, undefined)
+
+      return (
+        <form action={action}>
+          <div>
+            <label htmlFor="name">Name</label>
+            <input id="name" name="name" placeholder="Name" />
+          </div>
+          {state?.errors?.name && <p>{state.errors.name}</p>}
+
+          <div>
+            <label htmlFor="email">Email</label>
+            <input id="email" name="email" placeholder="Email" />
+          </div>
+          {state?.errors?.email && <p>{state.errors.email}</p>}
+
+          <div>
+            <label htmlFor="password">Password</label>
+            <input id="password" name="password" type="password" />
+          </div>
+          {state?.errors?.password && (
+            <div>
+              <p>Password must:</p>
+              <ul>
+                {state.errors.password.map((error) => (
+                  <li key={error}>- {error}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <button disabled={pending} type="submit">
+            Sign Up
+          </button>
+        </form>
+      )
+    }
+    ```
+  </Step>
+
+  <Step title="Create a user or check user credentials">
+    After validating form fields, you can create a new user account or check if the user exists by calling your authentication provider's API or database:
+
+    ```tsx filename="app/actions/auth.tsx"
+    export async function signup(state: FormState, formData: FormData) {
+      // 1. Validate form fields
+      // ...
+
+      // 2. Prepare data for insertion into database
+      const { name, email, password } = validatedFields.data
+      // e.g. Hash the user's password before storing it
+      const hashedPassword = await bcrypt.hash(password, 10)
+
+      // 3. Insert the user into the database or call an Auth Library's API
+      const data = await db
+        .insert(users)
+        .values({
+          name,
+          email,
+          password: hashedPassword,
+        })
+        .returning({ id: users.id })
+
+      const user = data[0]
+
+      if (!user) {
+        return {
+          message: 'An error occurred while creating your account.',
+        }
+      }
+
+      // 4. Create user session
+      // 5. Redirect user
+    }
+    ```
+  </Step>
+</Steps>
+
+## Session Management
+
+Session management ensures that the user's authenticated state is preserved across requests. It involves creating, storing, refreshing, and deleting sessions or tokens.
+
+There are two types of sessions:
+
+1. **Stateless**: Session data (or a token) is stored in the browser's cookies. The cookie is sent with each request, allowing the session to be verified on the server. This method is simpler, but can be less secure if not implemented correctly.
+2. **Database**: Session data is stored in a database, with the user's browser only receiving the encrypted session ID. This method is more secure, but can be complex and use more server resources.
+
+<Note>
+  We recommend using a session management library such as [iron-session](https://github.com/vvo/iron-session) or [Jose](https://github.com/panva/jose).
+</Note>
+
+### Stateless sessions
+
+To create and manage stateless sessions:
+
+<Steps>
+  <Step title="Generate a secret key">
+    Generate a secret key to sign your session and store it as an environment variable:
+
+    ```bash
+    openssl rand -base64 32
+    ```
+
+    ```bash filename=".env"
+    SESSION_SECRET=your_secret_key
+    ```
+  </Step>
+
+  <Step title="Encrypt and decrypt sessions">
+    Use a session management library to encrypt and decrypt sessions. The following example uses [Jose](https://www.npmjs.com/package/jose) and React's `server-only` package:
+
+    <Tabs>
+      <Tab title="TypeScript">
+        ```tsx filename="app/lib/session.ts"
+        import 'server-only'
+        import { SignJWT, jwtVerify } from 'jose'
+        import { SessionPayload } from '@/app/lib/definitions'
+
+        const secretKey = process.env.SESSION_SECRET
+        const encodedKey = new TextEncoder().encode(secretKey)
+
+        export async function encrypt(payload: SessionPayload) {
+          return new SignJWT(payload)
+            .setProtectedHeader({ alg: 'HS256' })
+            .setIssuedAt()
+            .setExpirationTime('7d')
+            .sign(encodedKey)
+        }
+
+        export async function decrypt(session: string | undefined = '') {
+          try {
+            const { payload } = await jwtVerify(session, encodedKey, {
+              algorithms: ['HS256'],
+            })
+            return payload
+          } catch (error) {
+            console.log('Failed to verify session')
+          }
+        }
+        ```
+      </Tab>
+      <Tab title="JavaScript">
+        ```jsx filename="app/lib/session.js"
+        import 'server-only'
+        import { SignJWT, jwtVerify } from 'jose'
+
+        const secretKey = process.env.SESSION_SECRET
+        const encodedKey = new TextEncoder().encode(secretKey)
+
+        export async function encrypt(payload) {
+          return new SignJWT(payload)
+            .setProtectedHeader({ alg: 'HS256' })
+            .setIssuedAt()
+            .setExpirationTime('7d')
+            .sign(encodedKey)
+        }
+
+        export async function decrypt(session) {
+          try {
+            const { payload } = await jwtVerify(session, encodedKey, {
+              algorithms: ['HS256'],
+            })
+            return payload
+          } catch (error) {
+            console.log('Failed to verify session')
+          }
+        }
+        ```
+      </Tab>
+    </Tabs>
+
+    <Tip>
+      The payload should contain the **minimum**, unique user data that'll be used in subsequent requests, such as the user's ID, role, etc. It should not contain personally identifiable information like phone number, email address, credit card information, etc, or sensitive data like passwords.
+    </Tip>
+  </Step>
+
+  <Step title="Set cookies">
+    To store the session in a cookie, use the Next.js `cookies` API. The cookie should be set on the server, and include the recommended options:
+
+    - **HttpOnly**: Prevents client-side JavaScript from accessing the cookie.
+    - **Secure**: Use https to send the cookie.
+    - **SameSite**: Specify whether the cookie can be sent with cross-site requests.
+    - **Max-Age or Expires**: Delete the cookie after a certain period.
+    - **Path**: Define the URL path for the cookie.
+
+    ```ts filename="app/lib/session.ts"
+    import 'server-only'
+    import { cookies } from 'next/headers'
+
+    export async function createSession(userId: string) {
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      const session = await encrypt({ userId, expiresAt })
+      const cookieStore = await cookies()
+
+      cookieStore.set('session', session, {
+        httpOnly: true,
+        secure: true,
+        expires: expiresAt,
+        sameSite: 'lax',
+        path: '/',
+      })
+    }
+    ```
+  </Step>
+</Steps>
+
+### Updating or refreshing sessions
+
+You can extend the session's expiration time to keep the user logged in after they access the application again:
+
+```ts filename="app/lib/session.ts"
+import 'server-only'
+import { cookies } from 'next/headers'
+import { decrypt } from '@/app/lib/session'
+
+export async function updateSession() {
+  const session = (await cookies()).get('session')?.value
+  const payload = await decrypt(session)
+
+  if (!session || !payload) {
+    return null
+  }
+
+  const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+
+  const cookieStore = await cookies()
+  cookieStore.set('session', session, {
+    httpOnly: true,
+    secure: true,
+    expires: expires,
+    sameSite: 'lax',
+    path: '/',
+  })
+}
+```
+
+### Deleting the session
+
+To delete the session, delete the cookie:
+
+```ts filename="app/lib/session.ts"
+import 'server-only'
+import { cookies } from 'next/headers'
+
+export async function deleteSession() {
+  const cookieStore = await cookies()
+  cookieStore.delete('session')
+}
+```
+
+Then reuse the `deleteSession()` function in your application, for example, on logout:
+
+```ts filename="app/actions/auth.ts"
+import { cookies } from 'next/headers'
+import { deleteSession } from '@/app/lib/session'
+
+export async function logout() {
+  await deleteSession()
+  redirect('/login')
+}
+```
+
+### Database sessions
+
+To create and manage database sessions:
+
+1. Create a table in your database to store session and data.
+2. Implement functionality to insert, update, and delete sessions.
+3. Encrypt the session ID before storing it in the user's browser, and ensure the database and cookie stay in sync.
+
+```ts filename="app/lib/session.ts"
+import cookies from 'next/headers'
+import { db } from '@/app/lib/db'
+import { encrypt } from '@/app/lib/session'
+
+export async function createSession(id: number) {
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+
+  // 1. Create a session in the database
+  const data = await db
+    .insert(sessions)
+    .values({
+      userId: id,
+      expiresAt,
+    })
+    .returning({ id: sessions.id })
+
+  const sessionId = data[0].id
+
+  // 2. Encrypt the session ID
+  const session = await encrypt({ sessionId, expiresAt })
+
+  // 3. Store the session in cookies for optimistic auth checks
+  const cookieStore = await cookies()
+  cookieStore.set('session', session, {
+    httpOnly: true,
+    secure: true,
+    expires: expiresAt,
+    sameSite: 'lax',
+    path: '/',
+  })
+}
+```
+
+## Authorization
+
+Once a user is authenticated and a session is created, you can implement authorization to control what the user can access and do within your application.
+
+There are two main types of authorization checks:
+
+1. **Optimistic**: Checks if the user is authorized using the session data stored in the cookie. Useful for quick operations such as showing/hiding UI elements or redirecting users based on permissions.
+2. **Secure**: Checks if the user is authorized using the session data stored in the database. Used for operations that require access to sensitive data or actions.
+
+### Optimistic checks with Proxy
+
+Use Proxy to perform optimistic checks and redirect users based on permissions:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```tsx filename="proxy.ts"
+    import { NextRequest, NextResponse } from 'next/server'
+    import { decrypt } from '@/app/lib/session'
+    import { cookies } from 'next/headers'
+
+    // 1. Specify protected and public routes
+    const protectedRoutes = ['/dashboard']
+    const publicRoutes = ['/login', '/signup', '/']
+
+    export default async function proxy(req: NextRequest) {
+      // 2. Check if the current route is protected or public
+      const path = req.nextUrl.pathname
+      const isProtectedRoute = protectedRoutes.includes(path)
+      const isPublicRoute = publicRoutes.includes(path)
+
+      // 3. Decrypt the session from the cookie
+      const cookie = (await cookies()).get('session')?.value
+      const session = await decrypt(cookie)
+
+      // 4. Redirect to /login if the user is not authenticated
+      if (isProtectedRoute && !session?.userId) {
+        return NextResponse.redirect(new URL('/login', req.nextUrl))
+      }
+
+      // 5. Redirect to /dashboard if the user is authenticated
+      if (
+        isPublicRoute &&
+        session?.userId &&
+        !req.nextUrl.pathname.startsWith('/dashboard')
+      ) {
+        return NextResponse.redirect(new URL('/dashboard', req.nextUrl))
+      }
+
+      return NextResponse.next()
+    }
+
+    // Routes Proxy should not run on
+    export const config = {
+      matcher: ['/((?!api|_next/static|_next/image|.*\\.png$).*)'],
+    }
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```js filename="proxy.js"
+    import { NextResponse } from 'next/server'
+    import { decrypt } from '@/app/lib/session'
+    import { cookies } from 'next/headers'
+
+    const protectedRoutes = ['/dashboard']
+    const publicRoutes = ['/login', '/signup', '/']
+
+    export default async function proxy(req) {
+      const path = req.nextUrl.pathname
+      const isProtectedRoute = protectedRoutes.includes(path)
+      const isPublicRoute = publicRoutes.includes(path)
+
+      const cookie = (await cookies()).get('session')?.value
+      const session = await decrypt(cookie)
+
+      if (isProtectedRoute && !session?.userId) {
+        return NextResponse.redirect(new URL('/login', req.nextUrl))
+      }
+
+      if (
+        isPublicRoute &&
+        session?.userId &&
+        !req.nextUrl.pathname.startsWith('/dashboard')
+      ) {
+        return NextResponse.redirect(new URL('/dashboard', req.nextUrl))
+      }
+
+      return NextResponse.next()
+    }
+
+    export const config = {
+      matcher: ['/((?!api|_next/static|_next/image|.*\\.png$).*)'],
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Warning>
+  Proxy should not be your only line of defense in protecting your data. The majority of security checks should be performed as close as possible to your data source.
+</Warning>
+
+### Creating a Data Access Layer (DAL)
+
+We recommend creating a DAL to centralize your data requests and authorization logic. The DAL should include a function that verifies the user's session as they interact with your application:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```tsx filename="app/lib/dal.ts"
+    import 'server-only'
+
+    import { cookies } from 'next/headers'
+    import { decrypt } from '@/app/lib/session'
+
+    export const verifySession = cache(async () => {
+      const cookie = (await cookies()).get('session')?.value
+      const session = await decrypt(cookie)
+
+      if (!session?.userId) {
+        redirect('/login')
+      }
+
+      return { isAuth: true, userId: session.userId }
+    })
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```jsx filename="app/lib/dal.js"
+    import 'server-only'
+
+    import { cookies } from 'next/headers'
+    import { decrypt } from '@/app/lib/session'
+
+    export const verifySession = cache(async () => {
+      const cookie = (await cookies()).get('session')?.value
+      const session = await decrypt(cookie)
+
+      if (!session.userId) {
+        redirect('/login')
+      }
+
+      return { isAuth: true, userId: session.userId }
+    })
+    ```
+  </Tab>
+</Tabs>
+
+You can then invoke the `verifySession()` function in your data requests, Server Actions, Route Handlers:
+
+```tsx filename="app/lib/dal.ts"
+export const getUser = cache(async () => {
+  const session = await verifySession()
+  if (!session) return null
+
+  try {
+    const data = await db.query.users.findMany({
+      where: eq(users.id, session.userId),
+      // Explicitly return the columns you need rather than the whole user object
+      columns: {
+        id: true,
+        name: true,
+        email: true,
+      },
+    })
+
+    const user = data[0]
+
+    return user
+  } catch (error) {
+    console.log('Failed to fetch user')
+    return null
+  }
+})
+```
+
+### Server Components
+
+Auth checks in Server Components are useful for role-based access. For example, to conditionally render components based on the user's role:
+
+```tsx filename="app/dashboard/page.tsx"
+import { verifySession } from '@/app/lib/dal'
+
+export default async function Dashboard() {
+  const session = await verifySession()
+  const userRole = session?.user?.role
+
+  if (userRole === 'admin') {
+    return <AdminDashboard />
+  } else if (userRole === 'user') {
+    return <UserDashboard />
+  } else {
+    redirect('/login')
+  }
+}
+```
+
+### Server Actions
+
+Treat Server Actions with the same security considerations as public-facing API endpoints, and verify if the user is allowed to perform a mutation:
+
+```ts filename="app/lib/actions.ts"
+'use server'
+import { verifySession } from '@/app/lib/dal'
+
+export async function serverAction(formData: FormData) {
+  const session = await verifySession()
+  const userRole = session?.user?.role
+
+  // Return early if user is not authorized to perform the action
+  if (userRole !== 'admin') {
+    return null
+  }
+
+  // Proceed with the action for authorized users
+}
+```
+
+### Route Handlers
+
+Treat Route Handlers with the same security considerations as public-facing API endpoints:
+
+```ts filename="app/api/route.ts"
+import { verifySession } from '@/app/lib/dal'
+
+export async function GET() {
+  // User authentication and role verification
+  const session = await verifySession()
+
+  // Check if the user is authenticated
+  if (!session) {
+    return new Response(null, { status: 401 })
+  }
+
+  // Check if the user has the 'admin' role
+  if (session.user.role !== 'admin') {
+    return new Response(null, { status: 403 })
+  }
+
+  // Continue for authorized users
+}
+```
+
+## Auth libraries
+
+For increased security and simplicity, consider using an authentication library:
+
+<CardGroup cols={2}>
+  <Card title="Auth.js" icon="shield" href="https://authjs.dev">
+    Flexible authentication for Next.js with support for many providers.
+  </Card>
+  <Card title="Clerk" icon="user" href="https://clerk.com">
+    Complete user management with pre-built UI components.
+  </Card>
+  <Card title="Lucia" icon="lock" href="https://lucia-auth.com">
+    Lightweight, flexible auth library focused on session management.
+  </Card>
+  <Card title="Kinde" icon="key" href="https://kinde.com">
+    Authentication and authorization platform with Next.js support.
+  </Card>
+</CardGroup>

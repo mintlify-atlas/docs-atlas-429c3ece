@@ -1,0 +1,223 @@
+---
+title: Internationalization
+description: Next.js has built-in support for internationalized routing and language detection for the Pages Router.
+---
+
+Next.js has built-in support for internationalized ([i18n](https://en.wikipedia.org/wiki/Internationalization_and_localization#Naming)) routing since `v10.0.0`. You can provide a list of locales, the default locale, and domain-specific locales and Next.js will automatically handle the routing.
+
+## Getting started
+
+Add the `i18n` config to your `next.config.js` file:
+
+```js filename="next.config.js"
+module.exports = {
+  i18n: {
+    locales: ['en-US', 'fr', 'nl-NL'],
+    defaultLocale: 'en-US',
+    domains: [
+      {
+        domain: 'example.com',
+        defaultLocale: 'en-US',
+      },
+      {
+        domain: 'example.nl',
+        defaultLocale: 'nl-NL',
+      },
+      {
+        domain: 'example.fr',
+        defaultLocale: 'fr',
+        http: true,
+      },
+    ],
+  },
+}
+```
+
+Locales are [UTS Locale Identifiers](https://www.unicode.org/reports/tr35/tr35-59/tr35.html#Identifiers): `language-region-script`. Examples:
+- `en-US` — English as spoken in the United States
+- `nl-NL` — Dutch as spoken in the Netherlands
+- `nl` — Dutch, no specific region
+
+## Locale strategies
+
+### Sub-path routing
+
+Puts the locale in the URL path:
+
+```js filename="next.config.js"
+module.exports = {
+  i18n: {
+    locales: ['en-US', 'fr', 'nl-NL'],
+    defaultLocale: 'en-US',
+  },
+}
+```
+
+With `pages/blog.js`, these URLs become available:
+- `/blog` (default locale)
+- `/fr/blog`
+- `/nl-nl/blog`
+
+### Domain routing
+
+Serve locales from different domains:
+
+```js filename="next.config.js"
+module.exports = {
+  i18n: {
+    locales: ['en-US', 'fr', 'nl-NL', 'nl-BE'],
+    defaultLocale: 'en-US',
+    domains: [
+      { domain: 'example.com', defaultLocale: 'en-US' },
+      { domain: 'example.fr', defaultLocale: 'fr' },
+      {
+        domain: 'example.nl',
+        defaultLocale: 'nl-NL',
+        locales: ['nl-BE'],
+      },
+    ],
+  },
+}
+```
+
+## Automatic locale detection
+
+When a user visits the application root (`/`), Next.js automatically detects which locale the user prefers based on the `Accept-Language` header and the current domain.
+
+To disable automatic detection:
+
+```js filename="next.config.js"
+module.exports = {
+  i18n: {
+    localeDetection: false,
+  },
+}
+```
+
+## Accessing locale information
+
+Access locale information via the `useRouter()` hook:
+
+```jsx
+import { useRouter } from 'next/router'
+
+export default function Page() {
+  const { locale, locales, defaultLocale } = useRouter()
+  return (
+    <div>
+      <p>Active locale: {locale}</p>
+      <p>All locales: {locales.join(', ')}</p>
+      <p>Default locale: {defaultLocale}</p>
+    </div>
+  )
+}
+```
+
+Locale information is also provided in `getStaticProps` and `getServerSideProps`:
+
+```jsx
+export async function getStaticProps({ locale }) {
+  const res = await fetch(`https://.../posts?locale=${locale}`)
+  const posts = await res.json()
+
+  if (posts.length === 0) {
+    return { notFound: true }
+  }
+
+  return { props: { posts } }
+}
+```
+
+## Transitioning between locales
+
+### Using `next/link`
+
+```jsx
+import Link from 'next/link'
+
+export default function IndexPage() {
+  return (
+    <Link href="/another" locale="fr">
+      To /fr/another
+    </Link>
+  )
+}
+```
+
+### Using `next/router`
+
+```jsx
+import { useRouter } from 'next/router'
+
+export default function IndexPage() {
+  const router = useRouter()
+
+  return (
+    <div
+      onClick={() => {
+        router.push('/another', '/another', { locale: 'fr' })
+      }}
+    >
+      to /fr/another
+    </div>
+  )
+}
+```
+
+To switch only the locale while preserving query values:
+
+```jsx
+import { useRouter } from 'next/router'
+const router = useRouter()
+const { pathname, asPath, query } = router
+// change just the locale and maintain all other route information
+router.push({ pathname, query }, asPath, { locale: nextLocale })
+```
+
+## The `NEXT_LOCALE` cookie
+
+Next.js supports a `NEXT_LOCALE=the-locale` cookie that takes priority over the `accept-language` header. Set this cookie with a language switcher to remember the user's locale preference.
+
+## SEO
+
+Next.js automatically adds the `lang` attribute to the `<html>` tag. Add `hreflang` meta tags manually using `next/head`:
+
+```jsx
+import Head from 'next/head'
+
+export default function Page() {
+  return (
+    <Head>
+      <link rel="alternate" hrefLang="en-US" href="https://example.com/en-US/page" />
+      <link rel="alternate" hrefLang="fr" href="https://example.com/fr/page" />
+    </Head>
+  )
+}
+```
+
+## Dynamic routes with `getStaticPaths`
+
+For pages using `getStaticProps` with Dynamic Routes, return all locale variants:
+
+```jsx filename="pages/blog/[slug].js"
+export const getStaticPaths = ({ locales }) => {
+  return {
+    paths: [
+      { params: { slug: 'post-1' }, locale: 'en-US' },
+      { params: { slug: 'post-1' }, locale: 'fr' },
+    ],
+    fallback: true,
+  }
+}
+```
+
+## Limits
+
+| Config | Limit |
+|--------|-------|
+| `locales` | 100 total locales |
+| `domains` | 100 total locale domain items |
+
+<Note>
+  Internationalized routing does not integrate with `output: 'export'` as it requires the Next.js routing layer.
+</Note>

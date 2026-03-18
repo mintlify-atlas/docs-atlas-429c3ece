@@ -1,0 +1,157 @@
+---
+title: "<Link>"
+description: API reference for the built-in next/link component that enables client-side navigation.
+---
+
+The `<Link>` component extends the HTML `<a>` element to provide prefetching and client-side navigation between routes.
+
+## Usage
+
+```jsx
+import Link from 'next/link'
+
+export default function Page() {
+  return <Link href="/dashboard">Dashboard</Link>
+}
+```
+
+## Props
+
+<ParamField path="href" type="string | object" required>
+  The path or URL to navigate to.
+
+  ```jsx
+  // String
+  <Link href="/about">About</Link>
+
+  // URL object
+  <Link
+    href={{
+      pathname: '/about',
+      query: { name: 'test' },
+    }}
+  >
+    About
+  </Link>
+  ```
+</ParamField>
+
+<ParamField path="replace" type="boolean">
+  When `true`, replaces the current history state instead of adding a new URL into the browser's history stack. Defaults to `false`.
+</ParamField>
+
+<ParamField path="scroll" type="boolean">
+  Controls whether the page scrolls to the top after navigation. Defaults to `true`.
+</ParamField>
+
+<ParamField path="prefetch" type="boolean">
+  Controls whether the page is prefetched in the background when the link enters the viewport. Defaults to `true` for static pages, `false` for server-rendered pages.
+</ParamField>
+
+<ParamField path="locale" type="string | false">
+  The locale to navigate to. If `false`, the current locale prefix is not included in the `href`.
+
+  ```jsx
+  <Link href="/another" locale="fr">
+    To /fr/another
+  </Link>
+  ```
+</ParamField>
+
+<ParamField path="legacyBehavior" type="boolean">
+  When `true`, the component wraps a child `<a>` element. Defaults to `false`. Use for migrating from Next.js versions earlier than 13.
+</ParamField>
+
+<ParamField path="passHref" type="boolean">
+  Forces the `href` property to be passed to the child element. Defaults to `false`. Required when using a custom component that forwards to an `<a>` tag with `legacyBehavior`.
+</ParamField>
+
+<ParamField path="shallow" type="boolean">
+  When `true`, navigates to the current page without running `getStaticProps`, `getServerSideProps`, or `getInitialProps`. Defaults to `false`.
+</ParamField>
+
+## Examples
+
+### Linking to dynamic segments
+
+```jsx
+import Link from 'next/link'
+
+function Posts({ posts }) {
+  return (
+    <ul>
+      {posts.map((post) => (
+        <li key={post.id}>
+          <Link href={`/blog/${post.slug}`}>{post.title}</Link>
+        </li>
+      ))}
+    </ul>
+  )
+}
+```
+
+### Using a URL object
+
+```jsx
+import Link from 'next/link'
+
+function Posts({ posts }) {
+  return (
+    <ul>
+      {posts.map((post) => (
+        <li key={post.id}>
+          <Link
+            href={{
+              pathname: '/blog/[slug]',
+              query: { slug: post.slug },
+            }}
+          >
+            {post.title}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  )
+}
+```
+
+### Checking if a link is active
+
+```jsx
+import { useRouter } from 'next/router'
+import Link from 'next/link'
+
+function NavLink({ href, children }) {
+  const router = useRouter()
+  const isActive = router.asPath === href
+
+  return (
+    <Link
+      href={href}
+      style={{ color: isActive ? 'red' : 'black' }}
+    >
+      {children}
+    </Link>
+  )
+}
+```
+
+### With internationalization
+
+```jsx
+import Link from 'next/link'
+
+export default function Home() {
+  return (
+    <ul>
+      <li>
+        <Link href="/" locale="de">Germany</Link>
+      </li>
+      <li>
+        {/* Opt out of locale prefixing */}
+        <Link href="/fr/about" locale={false}>About (French)</Link>
+      </li>
+    </ul>
+  )
+}
+```

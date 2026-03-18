@@ -1,0 +1,109 @@
+---
+title: use server
+description: Learn how to use the use server directive to mark functions or files for server-side execution, creating Server Functions and Server Actions.
+---
+
+The `use server` directive designates a function or file to execute on the **server side**. It can be placed at the top of a file (marking all exports as server-side) or inline at the top of a function (marking that function as a [Server Function](https://react.dev/reference/rsc/server-functions)). This is a React feature.
+
+## Using `use server` at the top of a file
+
+All functions in the file execute on the server:
+
+```tsx filename="app/actions.ts"
+'use server'
+import { db } from '@/lib/db'
+import { auth } from '@/lib/auth'
+
+export async function createUser(data: { name: string; email: string }) {
+  const session = await auth()
+  if (!session?.user) {
+    throw new Error('Unauthorized')
+  }
+
+  const user = await db.user.create({ data })
+  return { id: user.id, name: user.name }
+}
+```
+
+### Using Server Functions in Client Components
+
+Create Server Functions in a dedicated file with `use server` at the top, then import them into Client Components:
+
+```tsx filename="app/actions.ts"
+'use server'
+import { db } from '@/lib/db'
+import { auth } from '@/lib/auth'
+
+export async function fetchUsers() {
+  const session = await auth()
+  if (!session?.user) {
+    throw new Error('Unauthorized')
+  }
+
+  return db.user.findMany({
+    select: { id: true, name: true, email: true },
+  })
+}
+```
+
+```tsx filename="app/components/my-button.tsx"
+'use client'
+import { fetchUsers } from '../actions'
+
+export default function MyButton() {
+  return <button onClick={() => fetchUsers()}>Fetch Users</button>
+}
+```
+
+## Using `use server` inline
+
+Mark individual functions as Server Functions by placing `use server` at the top of the function body:
+
+```tsx filename="app/posts/[id]/page.tsx"
+import { EditPost } from './edit-post'
+import { revalidatePath } from 'next/cache'
+
+export default async function PostPage({ params }: { params: { id: string } }) {
+  const post = await getPost(params.id)
+
+  async function updatePost(formData: FormData) {
+    'use server'
+    await savePost(params.id, formData)
+    revalidatePath(`/posts/${params.id}`)
+  }
+
+  return <EditPost updatePostAction={updatePost} post={post} />
+}
+```
+
+## Security considerations
+
+Design your data access functions as secure primitives: validate inputs, check authentication and authorization, and constrain return types to only what the caller needs.
+
+### Authentication and authorization
+
+Always authenticate and authorize users before performing sensitive operations. Read authentication from cookies or headers rather than accepting tokens as function parameters:
+
+```tsx filename="app/actions.ts"
+'use server'
+
+import { db } from '@/lib/db'
+import { auth } from '@/lib/auth'
+
+export async function createUser(data: { name: string; email: string }) {
+  const session = await auth()
+  if (!session?.user) {
+    throw new Error('Unauthorized')
+  }
+  const newUser = await db.user.create({ data })
+  return { id: newUser.id, name: newUser.name }
+}
+```
+
+### Return values
+
+Server Function return values are serialized and sent to the client. Only return data the UI needs, not raw database records.
+
+## Reference
+
+See the [React documentation](https://react.dev/reference/rsc/use-server) for more information on `'use server'`.

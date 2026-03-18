@@ -1,0 +1,180 @@
+---
+title: Mutating Data
+description: Learn how to mutate data using Server Functions and Server Actions in Next.js.
+---
+
+You can mutate data in Next.js using **React Server Functions**. This page explains how to create and invoke them.
+
+## What are Server Functions?
+
+A **Server Function** is an async function that runs on the server. You call it from the client through a network request.
+
+In a form or mutation context, they are called **Server Actions**. By convention, a Server Action is an async function passed to a `<form>` via the `action` prop, or to a `<button>` via `formAction`.
+
+<Warning>
+Server Functions are reachable via direct POST requests. Always verify authentication and authorization inside every Server Function.
+</Warning>
+
+## Creating Server Functions
+
+Use the `'use server'` directive to create a Server Function:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts app/lib/actions.ts
+    import { auth } from '@/lib/auth'
+
+    export async function createPost(formData: FormData) {
+      'use server'
+
+      const session = await auth()
+      if (!session?.user) {
+        throw new Error('Unauthorized')
+      }
+
+      const title = formData.get('title')
+      const content = formData.get('content')
+
+      // Save to database
+      // Revalidate cache
+    }
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```js app/lib/actions.js
+    import { auth } from '@/lib/auth'
+
+    export async function createPost(formData) {
+      'use server'
+
+      const session = await auth()
+      if (!session?.user) {
+        throw new Error('Unauthorized')
+      }
+
+      const title = formData.get('title')
+      const content = formData.get('content')
+
+      // Save to database
+      // Revalidate cache
+    }
+    ```
+  </Tab>
+</Tabs>
+
+You can also place `'use server'` at the top of a file to mark all exports as Server Functions:
+
+```ts app/lib/actions.ts
+'use server'
+
+export async function createPost(formData: FormData) { /* ... */ }
+export async function deletePost(id: string) { /* ... */ }
+```
+
+## Invoking Server Functions
+
+### From a form
+
+Pass a Server Action to the `action` prop of a `<form>`:
+
+```tsx app/ui/create-post-form.tsx
+import { createPost } from '@/app/lib/actions'
+
+export default function CreatePostForm() {
+  return (
+    <form action={createPost}>
+      <input name="title" placeholder="Post title" required />
+      <textarea name="content" placeholder="Content" required />
+      <button type="submit">Create Post</button>
+    </form>
+  )
+}
+```
+
+### From a Client Component
+
+Import and call a Server Function directly in a Client Component:
+
+```tsx app/ui/delete-button.tsx
+'use client'
+
+import { deletePost } from '@/app/lib/actions'
+
+export default function DeleteButton({ postId }: { postId: string }) {
+  return (
+    <button
+      onClick={async () => {
+        await deletePost(postId)
+      }}
+    >
+      Delete
+    </button>
+  )
+}
+```
+
+## Handling form state
+
+Use `useActionState` to handle errors and pending states:
+
+```tsx app/ui/form.tsx
+'use client'
+
+import { useActionState } from 'react'
+import { createPost } from '@/app/actions'
+
+const initialState = { message: '' }
+
+export function Form() {
+  const [state, formAction, pending] = useActionState(createPost, initialState)
+
+  return (
+    <form action={formAction}>
+      <input name="title" required />
+      {state?.message && <p className="error">{state.message}</p>}
+      <button disabled={pending} type="submit">
+        {pending ? 'Creating...' : 'Create Post'}
+      </button>
+    </form>
+  )
+}
+```
+
+## Revalidating cached data
+
+After a mutation, revalidate cached data using `revalidatePath` or `revalidateTag`:
+
+```ts app/lib/actions.ts
+'use server'
+
+import { revalidatePath, revalidateTag } from 'next/cache'
+
+export async function createPost(formData: FormData) {
+  // ... save to database
+
+  // Revalidate the blog page
+  revalidatePath('/blog')
+
+  // Or revalidate by cache tag
+  revalidateTag('posts')
+}
+```
+
+## Redirecting after mutation
+
+Use `redirect` to navigate after a successful mutation:
+
+```ts app/lib/actions.ts
+'use server'
+
+import { redirect } from 'next/navigation'
+
+export async function createPost(formData: FormData) {
+  const post = await savePost(formData)
+  redirect(`/blog/${post.id}`)
+}
+```
+
+<Note>
+`redirect` works outside of `try/catch` blocks. Call it after your mutation logic completes.
+</Note>

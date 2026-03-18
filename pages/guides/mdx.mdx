@@ -1,0 +1,171 @@
+---
+title: MDX
+description: Learn how to configure MDX and write JSX in your markdown files in Next.js.
+---
+
+[Markdown](https://daringfireball.net/projects/markdown/syntax) is a lightweight markup language used to format text. [MDX](https://mdxjs.com/) is a superset of markdown that lets you write [JSX](https://react.dev/learn/writing-markup-with-jsx) directly in your markdown files.
+
+Next.js can support both local MDX content inside your application, as well as remote MDX files fetched dynamically on the server.
+
+## Install dependencies
+
+<CodeGroup>
+```bash npm
+npm install @next/mdx @mdx-js/loader @mdx-js/react @types/mdx
+```
+```bash yarn
+yarn add @next/mdx @mdx-js/loader @mdx-js/react @types/mdx
+```
+```bash pnpm
+pnpm add @next/mdx @mdx-js/loader @mdx-js/react @types/mdx
+```
+```bash bun
+bun add @next/mdx @mdx-js/loader @mdx-js/react @types/mdx
+```
+</CodeGroup>
+
+## Configure `next.config.mjs`
+
+```js filename="next.config.mjs"
+import createMDX from '@next/mdx'
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Configure `pageExtensions` to include markdown and MDX files
+  pageExtensions: ['js', 'jsx', 'md', 'mdx', 'ts', 'tsx'],
+}
+
+const withMDX = createMDX({
+  // Add markdown plugins here, as desired
+})
+
+// Merge MDX config with Next.js config
+export default withMDX(nextConfig)
+```
+
+This allows `.mdx` files to act as pages in your `pages` directory.
+
+## Creating MDX pages
+
+Create an MDX file in the `pages` directory:
+
+```mdx filename="pages/my-mdx-page.mdx"
+import { MyComponent } from 'my-component'
+
+# Welcome to my MDX page!
+
+This is some **bold** and _italics_ text.
+
+This is a list in markdown:
+
+- One
+- Two
+- Three
+
+Checkout my React component:
+
+<MyComponent />
+```
+
+## Using components in MDX
+
+### Importing components
+
+You can import React components directly in MDX files:
+
+```mdx
+import { MyComponent } from '../components/my-component'
+
+# My Page
+
+<MyComponent />
+```
+
+### Sharing components with `MDXProvider`
+
+Use the `MDXProvider` in `pages/_app.js` to provide components to all MDX pages without importing them:
+
+```jsx filename="pages/_app.js"
+import { MDXProvider } from '@mdx-js/react'
+
+const components = {
+  h1: (props) => <h1 style={{ color: 'blue' }} {...props} />,
+  p: (props) => <p style={{ fontSize: '18px' }} {...props} />,
+}
+
+export default function App({ Component, pageProps }) {
+  return (
+    <MDXProvider components={components}>
+      <Component {...pageProps} />
+    </MDXProvider>
+  )
+}
+```
+
+## Frontmatter
+
+MDX supports frontmatter for page metadata. Install `gray-matter` to parse it:
+
+<CodeGroup>
+```bash npm
+npm install gray-matter
+```
+```bash yarn
+yarn add gray-matter
+```
+</CodeGroup>
+
+Fetch MDX content with frontmatter in `getStaticProps`:
+
+```jsx filename="pages/blog/[slug].js"
+import fs from 'fs'
+import path from 'path'
+import matter from 'gray-matter'
+
+export async function getStaticProps({ params }) {
+  const postsDirectory = path.join(process.cwd(), 'posts')
+  const filePath = path.join(postsDirectory, `${params.slug}.mdx`)
+  const fileContents = fs.readFileSync(filePath, 'utf8')
+
+  const { data, content } = matter(fileContents)
+
+  return {
+    props: {
+      frontmatter: data,
+      content,
+    },
+  }
+}
+
+export async function getStaticPaths() {
+  const postsDirectory = path.join(process.cwd(), 'posts')
+  const filenames = fs.readdirSync(postsDirectory)
+
+  const paths = filenames
+    .filter((file) => file.endsWith('.mdx'))
+    .map((file) => ({
+      params: { slug: file.replace('.mdx', '') },
+    }))
+
+  return { paths, fallback: false }
+}
+```
+
+## Remark and rehype plugins
+
+Add plugins to extend MDX functionality:
+
+```js filename="next.config.mjs"
+import createMDX from '@next/mdx'
+import remarkGfm from 'remark-gfm'
+import rehypePrism from 'rehype-prism-plus'
+
+const withMDX = createMDX({
+  options: {
+    remarkPlugins: [remarkGfm],
+    rehypePlugins: [rehypePrism],
+  },
+})
+
+export default withMDX(nextConfig)
+```

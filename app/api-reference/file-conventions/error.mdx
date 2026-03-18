@@ -1,0 +1,109 @@
+---
+title: error.js
+description: API reference for the error.js file convention, which defines an error boundary for a route segment with fallback UI and recovery options.
+---
+
+An `error.js` file defines a UI fallback for unexpected runtime errors. It wraps a route segment and its nested children in a [React Error Boundary](https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary).
+
+```tsx filename="app/dashboard/error.tsx"
+'use client' // Error boundaries must be Client Components
+
+import { useEffect } from 'react'
+
+export default function Error({
+  error,
+  unstable_retry,
+}: {
+  error: Error & { digest?: string }
+  unstable_retry: () => void
+}) {
+  useEffect(() => {
+    console.error(error)
+  }, [error])
+
+  return (
+    <div>
+      <h2>Something went wrong!</h2>
+      <button onClick={() => unstable_retry()}>Try again</button>
+    </div>
+  )
+}
+```
+
+`error.js` wraps `loading.js`, `not-found.js`, `page.js`, and nested `layout.js` files. It does **not** wrap `layout.js` or `template.js` in the same segment. To handle errors in the root layout, use `global-error.js`.
+
+<Note>Error boundaries must be Client Components. The React DevTools allow you to toggle error boundaries to test error states.</Note>
+
+## Props
+
+<ParamField path="error" type="Error & { digest?: string }">
+  An instance of an `Error` object. In development, the error includes the original message. In production, a generic message is shown to avoid leaking sensitive details. Use `error.digest` to match the error in server-side logs.
+
+  - **`error.message`**: The error message (generic for Server Component errors).
+  - **`error.digest`**: An auto-generated hash used to match the error in server logs.
+</ParamField>
+
+<ParamField path="unstable_retry" type="() => void">
+  A function that attempts to recover by re-fetching and re-rendering the error boundary's contents. If successful, the fallback is replaced with the result of the re-render.
+
+  ```tsx filename="app/dashboard/error.tsx"
+  'use client'
+
+  export default function Error({
+    error,
+    unstable_retry,
+  }: {
+    error: Error & { digest?: string }
+    unstable_retry: () => void
+  }) {
+    return (
+      <div>
+        <h2>Something went wrong!</h2>
+        <button onClick={() => unstable_retry()}>Try again</button>
+      </div>
+    )
+  }
+  ```
+</ParamField>
+
+<ParamField path="reset" type="() => void">
+  Clears the error state and re-renders the error boundary's contents without re-fetching. Use `unstable_retry()` in most cases.
+</ParamField>
+
+## Examples
+
+### Global error
+
+Handle errors in the root layout with `global-error.js` in the root app directory. The global error UI must define its own `<html>` and `<body>` tags.
+
+```tsx filename="app/global-error.tsx"
+'use client'
+
+export default function GlobalError({
+  error,
+  unstable_retry,
+}: {
+  error: Error & { digest?: string }
+  unstable_retry: () => void
+}) {
+  return (
+    <html>
+      <body>
+        <h2>Something went wrong!</h2>
+        <button onClick={() => unstable_retry()}>Try again</button>
+      </body>
+    </html>
+  )
+}
+```
+
+<Note>Metadata and `generateMetadata` exports are not supported in `global-error.jsx`. Use the React `<title>` component instead.</Note>
+
+## Version history
+
+| Version | Changes |
+| --- | --- |
+| `v16.2.0` | `unstable_retry` prop added. |
+| `v15.2.0` | `global-error` also displays in development. |
+| `v13.1.0` | `global-error` introduced. |
+| `v13.0.0` | `error` introduced. |

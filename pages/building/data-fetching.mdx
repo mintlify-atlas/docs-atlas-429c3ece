@@ -1,0 +1,266 @@
+---
+title: Data fetching
+description: Learn how to fetch data in Next.js Pages Router using getStaticProps, getServerSideProps, getStaticPaths, and client-side fetching.
+---
+
+The Pages Router provides several data fetching methods that let you choose how your page's data is fetched and rendered.
+
+## `getStaticProps`
+
+Export `getStaticProps` (Static Site Generation) from a page to pre-render at build time:
+
+```tsx filename="pages/index.tsx"
+import type { InferGetStaticPropsType, GetStaticProps } from 'next'
+
+type Repo = {
+  name: string
+  stargazers_count: number
+}
+
+export const getStaticProps = (async (context) => {
+  const res = await fetch('https://api.github.com/repos/vercel/next.js')
+  const repo = await res.json()
+  return { props: { repo } }
+}) satisfies GetStaticProps<{
+  repo: Repo
+}>
+
+export default function Page({
+  repo,
+}: InferGetStaticPropsType<typeof getStaticProps>) {
+  return repo.stargazers_count
+}
+```
+
+### When to use `getStaticProps`
+
+- The data required to render the page is available at build time
+- The data comes from a headless CMS
+- The page must be pre-rendered for SEO
+- The data can be publicly cached (not user-specific)
+
+### `getStaticProps` runs on the server
+
+`getStaticProps` always runs on the server and never on the client. It always runs during `next build`, in the background when using ISR, and on-demand when using `revalidate()`.
+
+### Fetching data from a CMS
+
+```jsx filename="pages/blog.js"
+export default function Blog({ posts }) {
+  return (
+    <ul>
+      {posts.map((post) => (
+        <li>{post.title}</li>
+      ))}
+    </ul>
+  )
+}
+
+export async function getStaticProps() {
+  const res = await fetch('https://.../posts')
+  const posts = await res.json()
+
+  return {
+    props: {
+      posts,
+    },
+  }
+}
+```
+
+### ISR with `revalidate`
+
+Use the `revalidate` key to enable [Incremental Static Regeneration](/pages/guides/incremental-static-regeneration):
+
+```js
+export async function getStaticProps() {
+  const res = await fetch('https://.../posts')
+  const posts = await res.json()
+
+  return {
+    props: { posts },
+    // Re-generate the page at most once every 10 seconds
+    revalidate: 10,
+  }
+}
+```
+
+## `getStaticPaths`
+
+If a page has Dynamic Routes and uses `getStaticProps`, it needs `getStaticPaths` to define the list of paths to statically generate:
+
+```tsx filename="pages/repo/[name].tsx"
+import type {
+  InferGetStaticPropsType,
+  GetStaticProps,
+  GetStaticPaths,
+} from 'next'
+
+export const getStaticPaths = (async () => {
+  return {
+    paths: [
+      {
+        params: {
+          name: 'next.js',
+        },
+      },
+    ],
+    fallback: true,
+  }
+}) satisfies GetStaticPaths
+
+export const getStaticProps = (async (context) => {
+  const res = await fetch('https://api.github.com/repos/vercel/next.js')
+  const repo = await res.json()
+  return { props: { repo } }
+}) satisfies GetStaticProps<{
+  repo: Repo
+}>
+
+export default function Page({
+  repo,
+}: InferGetStaticPropsType<typeof getStaticProps>) {
+  return repo.stargazers_count
+}
+```
+
+### Fallback behavior
+
+| `fallback` value | Behavior |
+|-----------------|----------|
+| `false` | Paths not returned by `getStaticPaths` result in a 404 |
+| `true` | Next.js serves a fallback version on first request, generates the page in background |
+| `'blocking'` | New paths wait for HTML generation (SSR-like), then cache for future requests |
+
+### Generating paths on demand
+
+```jsx filename="pages/posts/[id].js"
+export async function getStaticPaths() {
+  if (process.env.SKIP_BUILD_STATIC_GENERATION) {
+    return {
+      paths: [],
+      fallback: 'blocking',
+    }
+  }
+
+  const res = await fetch('https://.../posts')
+  const posts = await res.json()
+
+  const paths = posts.map((post) => ({
+    params: { id: post.id },
+  }))
+
+  return { paths, fallback: false }
+}
+```
+
+## `getServerSideProps`
+
+`getServerSideProps` fetches data on **each request** and pre-renders the page:
+
+```tsx filename="pages/index.tsx"
+import type { InferGetServerSidePropsType, GetServerSideProps } from 'next'
+
+type Repo = {
+  name: string
+  stargazers_count: number
+}
+
+export const getServerSideProps = (async () => {
+  const res = await fetch('https://api.github.com/repos/vercel/next.js')
+  const repo: Repo = await res.json()
+  return { props: { repo } }
+}) satisfies GetServerSideProps<{ repo: Repo }>
+
+export default function Page({
+  repo,
+}: InferGetServerSidePropsType<typeof getServerSideProps>) {
+  return (
+    <main>
+      <p>{repo.stargazers_count}</p>
+    </main>
+  )
+}
+```
+
+### When to use `getServerSideProps`
+
+Use `getServerSideProps` when you need to render a page that relies on:
+
+- Personalized user data
+- Information that can only be known at request time (authorization headers, geolocation)
+
+If you don't need fresh data on every request, prefer `getStaticProps` with revalidation.
+
+### Caching SSR responses
+
+```jsx
+export async function getServerSideProps({ req, res }) {
+  res.setHeader(
+    'Cache-Control',
+    'public, s-maxage=10, stale-while-revalidate=59'
+  )
+
+  return {
+    props: {},
+  }
+}
+```
+
+## Client-side data fetching
+
+Client-side data fetching is useful when your page doesn't require SEO indexing or when content updates frequently.
+
+### With `useEffect`
+
+```jsx
+import { useState, useEffect } from 'react'
+
+function Profile() {
+  const [data, setData] = useState(null)
+  const [isLoading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/profile-data')
+      .then((res) => res.json())
+      .then((data) => {
+        setData(data)
+        setLoading(false)
+      })
+  }, [])
+
+  if (isLoading) return <p>Loading...</p>
+  if (!data) return <p>No profile data</p>
+
+  return (
+    <div>
+      <h1>{data.name}</h1>
+      <p>{data.bio}</p>
+    </div>
+  )
+}
+```
+
+### With SWR
+
+The Next.js team created [SWR](https://swr.vercel.app/), a React Hook library for data fetching. It's highly recommended for client-side data fetching as it handles caching, revalidation, focus tracking, refetching on intervals, and more.
+
+```jsx
+import useSWR from 'swr'
+
+const fetcher = (...args) => fetch(...args).then((res) => res.json())
+
+function Profile() {
+  const { data, error } = useSWR('/api/profile-data', fetcher)
+
+  if (error) return <div>Failed to load</div>
+  if (!data) return <div>Loading...</div>
+
+  return (
+    <div>
+      <h1>{data.name}</h1>
+      <p>{data.bio}</p>
+    </div>
+  )
+}
+```

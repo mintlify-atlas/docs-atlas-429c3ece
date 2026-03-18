@@ -1,0 +1,158 @@
+---
+title: Environment variables
+description: Learn to add and access environment variables in your Next.js Pages Router application.
+---
+
+Next.js has built-in support for environment variables, allowing you to load them from `.env` files and expose them to the browser with the `NEXT_PUBLIC_` prefix.
+
+## Loading environment variables
+
+Next.js loads environment variables from `.env*` files into `process.env`:
+
+```txt filename=".env"
+DB_HOST=localhost
+DB_USER=myuser
+DB_PASS=mypassword
+```
+
+This loads `process.env.DB_HOST`, `process.env.DB_USER`, and `process.env.DB_PASS` into the Node.js environment automatically, making them available in Next.js data fetching methods and API routes.
+
+For example, using `getStaticProps`:
+
+```js filename="pages/index.js"
+export async function getStaticProps() {
+  const db = await myDB.connect({
+    host: process.env.DB_HOST,
+    username: process.env.DB_USER,
+    password: process.env.DB_PASS,
+  })
+  // ...
+}
+```
+
+### Loading with `@next/env`
+
+If you need to load environment variables outside of the Next.js runtime (e.g., in an ORM config file), use the `@next/env` package:
+
+<CodeGroup>
+```bash npm
+npm install @next/env
+```
+```bash yarn
+yarn add @next/env
+```
+```bash pnpm
+pnpm add @next/env
+```
+</CodeGroup>
+
+```ts filename="envConfig.ts"
+import { loadEnvConfig } from '@next/env'
+
+const projectDir = process.cwd()
+loadEnvConfig(projectDir)
+```
+
+### Variable expansion
+
+Next.js automatically expands variables that use `$` to reference other variables:
+
+```txt filename=".env"
+TWITTER_USER=nextjs
+TWITTER_URL=https://x.com/$TWITTER_USER
+```
+
+`process.env.TWITTER_URL` will be set to `https://x.com/nextjs`.
+
+## Bundling environment variables for the browser
+
+Non-`NEXT_PUBLIC_` environment variables are only available in the Node.js environment. To make a variable accessible in the browser, prefix it with `NEXT_PUBLIC_`:
+
+```txt filename=".env"
+NEXT_PUBLIC_ANALYTICS_ID=abcdefghijk
+```
+
+Next.js will inline all references to `process.env.NEXT_PUBLIC_ANALYTICS_ID` into the JavaScript bundle at build time:
+
+```js filename="pages/index.js"
+import setupAnalyticsService from '../lib/my-analytics-service'
+
+setupAnalyticsService(process.env.NEXT_PUBLIC_ANALYTICS_ID)
+
+function HomePage() {
+  return <h1>Hello World</h1>
+}
+
+export default HomePage
+```
+
+<Warning>
+  Dynamic lookups will NOT be inlined:
+  ```js
+  // This will NOT be inlined
+  const varName = 'NEXT_PUBLIC_ANALYTICS_ID'
+  setupAnalyticsService(process.env[varName])
+  ```
+</Warning>
+
+## Runtime environment variables
+
+For runtime environment variables in the Pages Router, use `getServerSideProps`:
+
+```jsx
+export async function getServerSideProps() {
+  const value = process.env.MY_RUNTIME_VALUE
+  return { props: { value } }
+}
+```
+
+## Test environment variables
+
+Use a `.env.test` file for test-specific environment variables:
+
+```txt filename=".env.test"
+DB_HOST=localhost-test
+```
+
+`.env.local` is not loaded in the testing environment to ensure consistent results across all test executions.
+
+To load environment variables in Jest or similar tools:
+
+```js
+import { loadEnvConfig } from '@next/env'
+
+export default async () => {
+  const projectDir = process.cwd()
+  loadEnvConfig(projectDir)
+}
+```
+
+## Environment variable load order
+
+Variables are loaded in the following order, stopping once found:
+
+1. `process.env`
+2. `.env.$(NODE_ENV).local`
+3. `.env.local` (not loaded when `NODE_ENV` is `test`)
+4. `.env.$(NODE_ENV)`
+5. `.env`
+
+## `.env` file types
+
+| File | Description |
+|------|-------------|
+| `.env` | All environments |
+| `.env.local` | Local overrides (not committed, not loaded in test) |
+| `.env.development` | Development environment |
+| `.env.production` | Production environment |
+| `.env.test` | Test environment |
+
+<Note>
+  `.env*` files should remain in the root of your project if using a `/src` directory.
+</Note>
+
+## Version history
+
+| Version | Changes |
+|---------|---------|
+| `v9.4.0` | Support for `.env` and `NEXT_PUBLIC_` introduced |

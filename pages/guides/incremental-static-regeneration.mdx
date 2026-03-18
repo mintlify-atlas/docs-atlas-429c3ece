@@ -1,0 +1,136 @@
+---
+title: Incremental Static Regeneration (ISR)
+description: Learn how to create or update static pages at runtime with Incremental Static Regeneration in the Pages Router.
+---
+
+Incremental Static Regeneration (ISR) lets you:
+
+- Update static content without rebuilding the entire site
+- Reduce server load by serving pre-rendered static pages for most requests
+- Ensure proper `cache-control` headers are automatically added to pages
+- Handle large amounts of content pages without long `next build` times
+
+## Background revalidation
+
+Add the `revalidate` key to `getStaticProps` to enable ISR:
+
+```jsx filename="pages/blog/[id].js"
+export default function Blog({ post }) {
+  return (
+    <main>
+      <h1>{post.title}</h1>
+    </main>
+  )
+}
+
+// This function gets called at build time on the server.
+export async function getStaticProps({ params }) {
+  const res = await fetch(`https://.../posts/${params.id}`)
+  const post = await res.json()
+
+  return {
+    props: { post },
+    // Next.js will attempt to re-generate the page:
+    // - When a request comes in
+    // - At most once every 60 seconds
+    revalidate: 60, // In seconds
+  }
+}
+
+export async function getStaticPaths() {
+  const res = await fetch('https://.../posts')
+  const posts = await res.json()
+
+  const paths = posts.map((post) => ({
+    params: { id: post.id },
+  }))
+
+  return { paths, fallback: 'blocking' }
+}
+```
+
+How ISR works:
+
+1. During `next build`, all known paths are generated
+2. Requests to these pages are served from the cache instantly
+3. After 60 seconds, the next request still returns the cached (stale) page
+4. Next.js triggers a re-generation of the page in the background
+5. Once the page is generated, Next.js updates the cache
+
+## On-demand revalidation
+
+You can revalidate specific pages on demand without waiting for the revalidation interval. Create a revalidation API route:
+
+```ts filename="pages/api/revalidate.ts"
+import type { NextApiRequest, NextApiResponse } from 'next'
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  // Check for secret token to confirm this is a valid request
+  if (req.query.secret !== process.env.MY_SECRET_TOKEN) {
+    return res.status(401).json({ message: 'Invalid token' })
+  }
+
+  try {
+    // The path to revalidate
+    await res.revalidate('/path-to-revalidate')
+    return res.json({ revalidated: true })
+  } catch (err) {
+    // If there was an error, Next.js will continue
+    // to show the last successfully generated page
+    return res.status(500).send('Error revalidating')
+  }
+}
+```
+
+Trigger revalidation from a webhook or CMS:
+
+```bash
+curl -X GET https://mysite.com/api/revalidate?secret=MY_SECRET_TOKEN
+```
+
+## Cache status headers
+
+The `x-nextjs-cache` response header indicates the cache status of an ISR page:
+
+| Value | Description |
+|-------|-------------|
+| `MISS` | Path is not in the cache (first visit) |
+| `STALE` | Path is cached but the revalidation time has passed; being updated in background |
+| `HIT` | Path is in the cache and has not exceeded the revalidation time |
+
+## Error handling
+
+If `getStaticProps` throws an error during background revalidation, the previously generated page continues to be served. On the next subsequent request, `getStaticProps` will be retried.
+
+```jsx
+export async function getStaticProps() {
+  const res = await fetch('https://.../posts')
+
+  if (!res.ok) {
+    // If there is a server error, you might want to
+    // throw an error instead of returning so that the cache is not updated
+    // until the next successful request.
+    throw new Error(`Failed to fetch posts, received status ${res.status}`)
+  }
+
+  const posts = await res.json()
+  return {
+    props: { posts },
+    revalidate: 60,
+  }
+}
+```
+
+## Self-hosting ISR
+
+When self-hosting, the ISR cache is stored in the filesystem in the Next.js cache at `<distDir>/cache/fetch-cache`. To share the cache across multiple instances or during deployments, configure a remote cache handler:
+
+```js filename="next.config.js"
+module.exports = {
+  cacheHandler: require.resolve('./cache-handler.js'),
+  cacheMaxMemorySize: 0, // disable default in-memory caching
+}
+```

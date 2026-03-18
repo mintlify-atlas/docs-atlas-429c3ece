@@ -1,0 +1,167 @@
+---
+title: Redirecting
+description: Learn the different ways to handle redirects in a Next.js Pages Router application.
+---
+
+There are several ways to handle redirects in the Pages Router:
+
+| API | Purpose | Where | Status code |
+|-----|---------|-------|-------------|
+| `useRouter` | Perform a client-side navigation | Components | N/A |
+| `redirects` in `next.config.js` | Redirect an incoming request based on a path | `next.config.js` | 307 (Temporary) or 308 (Permanent) |
+| `NextResponse.redirect` | Redirect an incoming request based on a condition | Proxy | Any |
+
+## `useRouter` hook
+
+For client-side navigation, use the `push` method of the `useRouter` hook inside an event handler:
+
+```jsx
+import { useRouter } from 'next/router'
+
+export default function Page() {
+  const router = useRouter()
+
+  return (
+    <button onClick={() => router.push('/dashboard')}>
+      Go to dashboard
+    </button>
+  )
+}
+```
+
+## `redirects` in `next.config.js`
+
+Configure permanent or temporary redirects that match incoming requests:
+
+```js filename="next.config.js"
+module.exports = {
+  async redirects() {
+    return [
+      {
+        source: '/about',
+        destination: '/',
+        permanent: true,
+      },
+    ]
+  },
+}
+```
+
+`permanent: true` returns a 308 status code (Permanent Redirect), `permanent: false` returns 307 (Temporary Redirect).
+
+### Wildcard path matching
+
+```js filename="next.config.js"
+module.exports = {
+  async redirects() {
+    return [
+      {
+        source: '/blog/:slug',
+        destination: '/news/:slug',
+        permanent: true,
+      },
+    ]
+  },
+}
+```
+
+### Regex matching
+
+```js filename="next.config.js"
+module.exports = {
+  async redirects() {
+    return [
+      {
+        source: '/post/:slug(\\d{1,})',
+        destination: '/news/:slug',
+        permanent: false,
+      },
+    ]
+  },
+}
+```
+
+### Header, cookie, and query matching
+
+```js filename="next.config.js"
+module.exports = {
+  async redirects() {
+    return [
+      // If the header `x-redirect-me` is present, this redirect will be applied
+      {
+        source: '/:path((?!another-page$).*)',
+        has: [{ type: 'header', key: 'x-redirect-me' }],
+        permanent: false,
+        destination: '/another-page',
+      },
+    ]
+  },
+}
+```
+
+## `NextResponse.redirect` in Proxy
+
+Use Proxy to redirect based on conditions, such as authentication:
+
+```ts filename="proxy.ts"
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+export function proxy(request: NextRequest) {
+  const isLoggedIn = checkAuthentication(request)
+
+  if (!isLoggedIn) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+}
+
+export const config = {
+  matcher: '/dashboard/:path*',
+}
+```
+
+## Redirecting from `getServerSideProps`
+
+Return a `redirect` object from `getServerSideProps` to redirect server-side:
+
+```jsx
+export async function getServerSideProps(context) {
+  const res = await fetch(`https://.../data`)
+  const data = await res.json()
+
+  if (!data) {
+    return {
+      redirect: {
+        destination: '/',
+        permanent: false,
+      },
+    }
+  }
+
+  return { props: { data } }
+}
+```
+
+## Redirecting from `getStaticProps`
+
+```jsx
+export async function getStaticProps(context) {
+  const res = await fetch(`https://...`)
+  const data = await res.json()
+
+  if (!data) {
+    return {
+      redirect: {
+        destination: '/',
+        permanent: false,
+      },
+    }
+  }
+
+  return { props: { data } }
+}
+```
+
+<Note>
+  If redirects are known at build time, add them to `next.config.js` instead, which avoids calling `getStaticProps` on each request.
+</Note>

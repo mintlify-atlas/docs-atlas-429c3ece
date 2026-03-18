@@ -1,0 +1,211 @@
+---
+title: Layouts and Pages
+description: Learn how to create pages and shared layouts using the App Router file conventions.
+---
+
+Next.js uses **file-system based routing** — you use folders and files to define routes. This page explains how to create layouts and pages, and link between them.
+
+## Creating a page
+
+A **page** is UI rendered on a specific route. Create a page by adding a `page` file inside the `app` directory and default exporting a React component:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```tsx app/page.tsx
+    export default function Page() {
+      return <h1>Hello Next.js!</h1>
+    }
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```jsx app/page.js
+    export default function Page() {
+      return <h1>Hello Next.js!</h1>
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Creating a layout
+
+A **layout** is UI shared between multiple pages. On navigation, layouts preserve state, remain interactive, and do not re-render.
+
+Define a layout by default exporting a React component from a `layout` file. The component accepts a `children` prop:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```tsx app/layout.tsx
+    export default function DashboardLayout({
+      children,
+    }: {
+      children: React.ReactNode
+    }) {
+      return (
+        <html lang="en">
+          <body>
+            <main>{children}</main>
+          </body>
+        </html>
+      )
+    }
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```jsx app/layout.js
+    export default function DashboardLayout({ children }) {
+      return (
+        <html lang="en">
+          <body>
+            <main>{children}</main>
+          </body>
+        </html>
+      )
+    }
+    ```
+  </Tab>
+</Tabs>
+
+The layout in `app/layout.tsx` is the **root layout** — it's required and must contain `<html>` and `<body>` tags.
+
+## Creating a nested route
+
+A nested route is composed of multiple URL segments. For `/blog/[slug]`:
+
+- Create `app/blog/` directory for the `/blog` segment
+- Create `app/blog/[slug]/` directory for the dynamic slug segment
+- Add a `page.tsx` at the leaf segment
+
+```
+app/
+  blog/
+    [slug]/
+      page.tsx    → /blog/:slug
+    page.tsx      → /blog
+  page.tsx        → /
+```
+
+## Nesting layouts
+
+Layouts nest by default. A layout at `app/blog/layout.tsx` wraps all `/blog` routes:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```tsx app/blog/layout.tsx
+    export default function BlogLayout({
+      children,
+    }: {
+      children: React.ReactNode
+    }) {
+      return (
+        <section>
+          <nav>Blog navigation</nav>
+          {children}
+        </section>
+      )
+    }
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```jsx app/blog/layout.js
+    export default function BlogLayout({ children }) {
+      return (
+        <section>
+          <nav>Blog navigation</nav>
+          {children}
+        </section>
+      )
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Linking between pages
+
+Use the [`<Link>` component](/app/api-reference/components/link) from `next/link` for client-side navigation:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```tsx app/layout.tsx
+    import Link from 'next/link'
+
+    export default function Layout({ children }: { children: React.ReactNode }) {
+      return (
+        <html lang="en">
+          <body>
+            <nav>
+              <Link href="/">Home</Link>
+              <Link href="/blog">Blog</Link>
+            </nav>
+            {children}
+          </body>
+        </html>
+      )
+    }
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```jsx app/layout.js
+    import Link from 'next/link'
+
+    export default function Layout({ children }) {
+      return (
+        <html lang="en">
+          <body>
+            <nav>
+              <Link href="/">Home</Link>
+              <Link href="/blog">Blog</Link>
+            </nav>
+            {children}
+          </body>
+        </html>
+      )
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Tip>
+`<Link>` automatically prefetches routes when they enter the viewport, making navigation feel instant.
+</Tip>
+
+## Dynamic routes
+
+Create dynamic segments by wrapping a folder name in square brackets: `[slug]`.
+
+```tsx app/blog/[slug]/page.tsx
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
+  return <h1>Post: {slug}</h1>
+}
+```
+
+For multiple dynamic segments, use catch-all routes: `[...slug]` or optional catch-all `[[...slug]]`.
+
+## Loading UI
+
+Add a `loading.tsx` file to show a skeleton while page content loads:
+
+```tsx app/blog/loading.tsx
+export default function Loading() {
+  return <div>Loading posts...</div>
+}
+```
+
+## Not Found UI
+
+Add a `not-found.tsx` file to customize the 404 page:
+
+```tsx app/not-found.tsx
+export default function NotFound() {
+  return (
+    <div>
+      <h2>Not Found</h2>
+      <p>Could not find the requested resource.</p>
+    </div>
+  )
+}
+```

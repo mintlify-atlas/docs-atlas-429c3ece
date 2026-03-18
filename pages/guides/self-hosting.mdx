@@ -1,0 +1,137 @@
+---
+title: Self-hosting
+description: Learn how to self-host your Next.js Pages Router application on a Node.js server, Docker image, or as static files.
+---
+
+When deploying your Next.js app without a managed platform, you can self-host on infrastructure you control.
+
+## Node.js server
+
+<Steps>
+  <Step title="Build your application">
+    ```bash
+    npm run build
+    ```
+  </Step>
+  <Step title="Start the server">
+    ```bash
+    npm run start
+    # or with a custom port
+    next start -p 4000
+    ```
+  </Step>
+</Steps>
+
+## Docker
+
+<Steps>
+  <Step title="Enable standalone output">
+    ```js filename="next.config.js"
+    module.exports = {
+      output: 'standalone',
+    }
+    ```
+  </Step>
+  <Step title="Create a Dockerfile">
+    ```dockerfile filename="Dockerfile"
+    FROM node:18-alpine AS base
+
+    FROM base AS deps
+    RUN apk add --no-cache libc6-compat
+    WORKDIR /app
+    COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+    RUN \
+      if [ -f yarn.lock ]; then yarn --frozen-lockfile; \
+      elif [ -f package-lock.json ]; then npm ci; \
+      elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i; \
+      else echo "Lockfile not found." && exit 1; \
+      fi
+
+    FROM base AS builder
+    WORKDIR /app
+    COPY --from=deps /app/node_modules ./node_modules
+    COPY . .
+    RUN npm run build
+
+    FROM base AS runner
+    WORKDIR /app
+    ENV NODE_ENV=production
+    RUN addgroup --system --gid 1001 nodejs
+    RUN adduser --system --uid 1001 nextjs
+    COPY --from=builder /app/public ./public
+    COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+    COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+    USER nextjs
+    EXPOSE 3000
+    ENV PORT=3000
+    ENV HOSTNAME="0.0.0.0"
+    CMD ["node", "server.js"]
+    ```
+  </Step>
+  <Step title="Build and run">
+    ```bash
+    docker build -t my-next-app .
+    docker run -p 3000:3000 my-next-app
+    ```
+  </Step>
+</Steps>
+
+## Image optimization
+
+[Image Optimization](/pages/api-reference/components/image) through `next/image` works self-hosted with zero configuration when using `next start`. If you prefer a separate image optimization service, configure a custom image loader in `next.config.js`.
+
+## Proxy (middleware)
+
+Proxy works self-hosted with zero configuration when using `next start`. Since it requires access to the incoming request, it is not supported with static exports.
+
+## Environment variables
+
+Environment variables are only available on the server by default. To expose to the browser, prefix with `NEXT_PUBLIC_`.
+
+For runtime environment variables (values not baked in at build time), use `getServerSideProps`:
+
+```jsx
+export async function getServerSideProps() {
+  return {
+    props: {
+      apiUrl: process.env.API_URL,
+    },
+  }
+}
+```
+
+## Caching and ISR
+
+Next.js stores the ISR cache at `<distDir>/cache/fetch-cache`. When self-hosting, you can configure persistent caching or a shared cache across multiple instances.
+
+## Reverse proxy
+
+When self-hosting, use a reverse proxy (like nginx) in front of your Next.js server rather than exposing it directly. A reverse proxy can handle malformed requests, slow connection attacks, payload size limits, and rate limiting.
+
+Example nginx configuration:
+
+```nginx
+server {
+  listen 80;
+  server_name example.com;
+
+  location / {
+    proxy_pass http://localhost:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
+  }
+}
+```
+
+## Health checks
+
+Add a health check endpoint to your API routes:
+
+```js filename="pages/api/health.js"
+export default function handler(req, res) {
+  res.status(200).json({ status: 'ok' })
+}
+```

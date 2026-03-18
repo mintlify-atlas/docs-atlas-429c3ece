@@ -1,0 +1,151 @@
+---
+title: _app.js
+description: Control page initialization and add a layout that persists for all pages by overriding the default App component.
+---
+
+Next.js uses the `App` component to initialize pages. Create `pages/_app.js` to override it and:
+
+- Create a shared layout between page changes
+- Inject additional data into pages
+- Add global CSS
+
+## Usage
+
+```jsx filename="pages/_app.js"
+export default function MyApp({ Component, pageProps }) {
+  return <Component {...pageProps} />
+}
+```
+
+## TypeScript
+
+```tsx filename="pages/_app.tsx"
+import type { AppProps } from 'next/app'
+
+export default function MyApp({ Component, pageProps }: AppProps) {
+  return <Component {...pageProps} />
+}
+```
+
+## Props
+
+<ParamField path="Component" type="React.ComponentType">
+  The active page component. Changes when navigating between routes.
+</ParamField>
+
+<ParamField path="pageProps" type="object">
+  An object with the initial props preloaded for your page by a data fetching method. Empty object if no data fetching method is used.
+</ParamField>
+
+## Adding a global layout
+
+```jsx filename="pages/_app.js"
+import Layout from '../components/layout'
+
+export default function MyApp({ Component, pageProps }) {
+  return (
+    <Layout>
+      <Component {...pageProps} />
+    </Layout>
+  )
+}
+```
+
+## Per-page layouts
+
+For pages with different layouts, use `getLayout`:
+
+```jsx filename="pages/_app.js"
+export default function MyApp({ Component, pageProps }) {
+  // Use the layout defined at the page level, if available
+  const getLayout = Component.getLayout ?? ((page) => page)
+
+  return getLayout(<Component {...pageProps} />)
+}
+```
+
+Then in each page:
+
+```jsx filename="pages/dashboard.js"
+import DashboardLayout from '../components/dashboard-layout'
+
+export default function Dashboard() {
+  return <p>Dashboard content</p>
+}
+
+Dashboard.getLayout = function getLayout(page) {
+  return <DashboardLayout>{page}</DashboardLayout>
+}
+```
+
+## Adding global CSS
+
+Import global CSS files in `_app.js`. Global CSS can only be imported here:
+
+```jsx filename="pages/_app.js"
+import '../styles/globals.css'
+
+export default function MyApp({ Component, pageProps }) {
+  return <Component {...pageProps} />
+}
+```
+
+## Listening to route events
+
+Use `useRouter` in `_app.js` to listen to route changes:
+
+```jsx filename="pages/_app.js"
+import { useRouter } from 'next/router'
+import { useEffect } from 'react'
+
+export default function MyApp({ Component, pageProps }) {
+  const router = useRouter()
+
+  useEffect(() => {
+    const handleRouteChange = (url) => {
+      console.log('App is changing to: ', url)
+    }
+
+    router.events.on('routeChangeStart', handleRouteChange)
+
+    return () => {
+      router.events.off('routeChangeStart', handleRouteChange)
+    }
+  }, [router])
+
+  return <Component {...pageProps} />
+}
+```
+
+## `getInitialProps` with `App`
+
+<Warning>
+  Using `getInitialProps` in `App` disables Automatic Static Optimization for pages without `getStaticProps`. We do not recommend this pattern.
+</Warning>
+
+```tsx filename="pages/_app.tsx"
+import App, { AppContext, AppInitialProps, AppProps } from 'next/app'
+
+type AppOwnProps = { example: string }
+
+export default function MyApp({
+  Component,
+  pageProps,
+  example,
+}: AppProps & AppOwnProps) {
+  return (
+    <>
+      <p>Data: {example}</p>
+      <Component {...pageProps} />
+    </>
+  )
+}
+
+MyApp.getInitialProps = async (
+  context: AppContext
+): Promise<AppOwnProps & AppInitialProps> => {
+  const ctx = await App.getInitialProps(context)
+
+  return { ...ctx, example: 'data' }
+}
+```

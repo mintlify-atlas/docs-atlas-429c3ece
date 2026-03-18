@@ -1,0 +1,173 @@
+---
+title: next.config.js
+description: Configure your Next.js application with next.config.js, covering caching, routing, images, TypeScript, and more.
+---
+
+Next.js is configured through a `next.config.js` file in the root of your project directory.
+
+```js filename="next.config.js"
+// @ts-check
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  /* config options here */
+}
+
+module.exports = nextConfig
+```
+
+## ECMAScript Modules
+
+`next.config.js` is a regular Node.js module. Use `next.config.mjs` for ESM:
+
+```js filename="next.config.mjs"
+// @ts-check
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  /* config options here */
+}
+
+export default nextConfig
+```
+
+<Note>`next.config` with `.cjs` or `.cts` extensions are not supported.</Note>
+
+## Configuration as a function
+
+```js filename="next.config.mjs"
+export default (phase, { defaultConfig }) => {
+  /** @type {import('next').NextConfig} */
+  const nextConfig = {
+    /* config options here */
+  }
+  return nextConfig
+}
+```
+
+You can also use an `async` function since Next.js 12.1.0. The `phase` parameter indicates the current context (e.g., `PHASE_DEVELOPMENT_SERVER`). Import phases from `next/constants`.
+
+## TypeScript
+
+Use `next.config.ts` for type-safe configuration:
+
+```ts filename="next.config.ts"
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  /* config options here */
+}
+
+export default nextConfig
+```
+
+## Key configuration options
+
+<CardGroup cols={2}>
+  <Card title="images" icon="image">
+    Configure the Image Optimization API: `remotePatterns`, `formats`, `deviceSizes`, `qualities`, and more.
+  </Card>
+  <Card title="turbopack" icon="zap">
+    Configure Turbopack: `resolveAlias`, `resolveExtensions`, `rules` (webpack loaders).
+  </Card>
+  <Card title="headers" icon="arrow-right-left">
+    Set custom HTTP response headers including security headers and CORS.
+  </Card>
+  <Card title="redirects" icon="corner-up-right">
+    Define URL redirects with status codes and path matching.
+  </Card>
+  <Card title="rewrites" icon="shuffle">
+    Map incoming request paths to different destination paths.
+  </Card>
+  <Card title="env" icon="terminal">
+    Add environment variables to the JavaScript bundle.
+  </Card>
+</CardGroup>
+
+## Caching options
+
+| Option | Description |
+| --- | --- |
+| `cacheComponents` | Enable Cache Components (`use cache`) feature. |
+| `cacheLife` | Define custom cache life profiles for `cacheLife()`. |
+| `cacheHandlers` | Configure custom cache handler for `use cache`. |
+| `serverComponentsHmrCache` | Control HMR caching for Server Components in development. |
+
+## Routing options
+
+| Option | Description |
+| --- | --- |
+| `basePath` | Deploy a Next.js app under a sub-path. |
+| `trailingSlash` | Redirect URLs to append or remove trailing slashes. |
+| `assetPrefix` | Set a CDN prefix for static assets. |
+| `compress` | Enable gzip compression for responses. |
+| `poweredByHeader` | Control the `X-Powered-By` response header. |
+
+## Build options
+
+| Option | Description |
+| --- | --- |
+| `output` | Set the output mode: `'standalone'`, `'export'`. |
+| `distDir` | Customize the build output directory (default: `.next`). |
+| `generateBuildId` | Customize the build ID used to identify your application. |
+| `pageExtensions` | Extend the default page file extensions. |
+| `productionBrowserSourceMaps` | Enable source maps in production builds. |
+
+## Experimental options
+
+| Option | Description |
+| --- | --- |
+| `turbopackFileSystemCacheForDev` | Enable Turbopack filesystem cache for dev server. |
+| `turbopackFileSystemCacheForBuild` | Enable Turbopack filesystem cache for builds. |
+| `globalNotFound` | Enable `global-not-found.js` file convention. |
+| `reactCompiler` | Enable the React Compiler. |
+
+## Example configuration
+
+```js filename="next.config.js"
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  // Image optimization
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'assets.example.com',
+      },
+    ],
+    formats: ['image/avif', 'image/webp'],
+  },
+
+  // Turbopack
+  turbopack: {
+    resolveAlias: {
+      underscore: 'lodash',
+    },
+  },
+
+  // Custom headers
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+        ],
+      },
+    ]
+  },
+
+  // Redirects
+  async redirects() {
+    return [
+      {
+        source: '/old-path',
+        destination: '/new-path',
+        permanent: true,
+      },
+    ]
+  },
+}
+
+module.exports = nextConfig
+```

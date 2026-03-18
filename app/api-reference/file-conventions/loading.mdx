@@ -1,0 +1,86 @@
+---
+title: loading.js
+description: API reference for the loading.js file convention, which provides instant loading states using React Suspense.
+---
+
+The `loading.js` file provides instant loading UI using [React Suspense](https://react.dev/reference/react/Suspense). The fallback is shown immediately while route segment content streams in, and is automatically replaced when complete.
+
+```tsx filename="app/feed/loading.tsx"
+export default function Loading() {
+  return <p>Loading...</p>
+}
+```
+
+By default, this file is a Server Component but can be used as a Client Component with the `"use client"` directive.
+
+## Parameters
+
+Loading UI components do not accept any parameters.
+
+## Behavior
+
+### Navigation
+
+- The fallback UI is prefetched, making navigation immediate (unless prefetching has not completed).
+- Navigation is interruptible — changing routes does not need to wait for content to fully load.
+- Shared layouts remain interactive while new route segments load.
+
+### Instant loading states
+
+An instant loading state is fallback UI shown immediately on navigation. Create a loading state by adding `loading.js` in a folder.
+
+```tsx filename="app/dashboard/loading.tsx"
+export default function Loading() {
+  return <LoadingSkeleton />
+}
+```
+
+In the same folder, `loading.js` is nested inside `layout.js`. It automatically wraps `page.js` and any children below in a `<Suspense>` boundary.
+
+<Note>If a layout accesses uncached or runtime data (e.g. `cookies()`, `headers()`), `loading.js` will not show a fallback for it. Move uncached data fetching into `page.js`, or wrap the runtime data access in a `<Suspense>` boundary in the layout.</Note>
+
+### Streaming with Suspense
+
+You can also create Suspense boundaries manually for granular control:
+
+```tsx filename="app/dashboard/page.tsx"
+import { Suspense } from 'react'
+import { PostFeed, Weather } from './Components'
+
+export default function Posts() {
+  return (
+    <section>
+      <Suspense fallback={<p>Loading feed...</p>}>
+        <PostFeed />
+      </Suspense>
+      <Suspense fallback={<p>Loading weather...</p>}>
+        <Weather />
+      </Suspense>
+    </section>
+  )
+}
+```
+
+### SEO
+
+- Next.js resolves `generateMetadata` before streaming UI. Metadata is placed in the initial HTML `<head>`.
+- Since streaming is server-rendered, it does not negatively impact SEO.
+
+### Status codes
+
+When streaming, a `200` status code is returned to signal the request was successful. Errors or redirects occurring after streaming starts are communicated within the streamed content.
+
+## Platform support
+
+| Deployment option | Supported |
+| --- | --- |
+| Node.js server | Yes |
+| Docker container | Yes |
+| Static export | No |
+| Adapters | Platform-specific |
+
+## Version history
+
+| Version | Changes |
+| --- | --- |
+| `v13.0.0` | `loading` introduced. |

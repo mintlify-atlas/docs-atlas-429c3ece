@@ -1,0 +1,463 @@
+---
+title: Image Component
+description: Optimize images in your Next.js application using the built-in next/image component with automatic optimization, lazy loading, and more.
+---
+
+The Next.js `<Image>` component extends the HTML `<img>` element with automatic image optimization: size optimization, visual stability, faster page loads, and asset flexibility.
+
+```jsx filename="app/page.js"
+import Image from 'next/image'
+
+export default function Page() {
+  return (
+    <Image
+      src="/profile.png"
+      width={500}
+      height={500}
+      alt="Picture of the author"
+    />
+  )
+}
+```
+
+## Props
+
+| Prop | Example | Type | Status |
+| --- | --- | --- | --- |
+| [`src`](#src) | `src="/profile.png"` | String | Required |
+| [`alt`](#alt) | `alt="Picture of the author"` | String | Required |
+| [`width`](#width-and-height) | `width={500}` | Integer (px) | — |
+| [`height`](#height) | `height={500}` | Integer (px) | — |
+| [`fill`](#fill) | `fill={true}` | Boolean | — |
+| [`loader`](#loader) | `loader={imageLoader}` | Function | — |
+| [`sizes`](#sizes) | `sizes="(max-width: 768px) 100vw, 33vw"` | String | — |
+| [`quality`](#quality) | `quality={80}` | Integer (1-100) | — |
+| [`preload`](#preload) | `preload={true}` | Boolean | — |
+| [`placeholder`](#placeholder) | `placeholder="blur"` | String | — |
+| [`style`](#style) | `style={{objectFit: "contain"}}` | Object | — |
+| [`onLoad`](#onload) | `onLoad={event => done()}` | Function | — |
+| [`onError`](#onerror) | `onError={event => fail()}` | Function | — |
+| [`loading`](#loading) | `loading="lazy"` | String | — |
+| [`blurDataURL`](#blurdataurl) | `blurDataURL="data:image/jpeg..."` | String | — |
+| [`unoptimized`](#unoptimized) | `unoptimized={true}` | Boolean | — |
+| [`overrideSrc`](#overridesrc) | `overrideSrc="/seo.png"` | String | — |
+| [`decoding`](#decoding) | `decoding="async"` | String | — |
+| [`onLoadingComplete`](#onloadingcomplete) | `onLoadingComplete={img => done()}` | Function | Deprecated |
+
+<ParamField path="src" type="string" required>
+  The source of the image. Can be an internal path string, an absolute external URL (must be configured with `remotePatterns`), or a static import.
+
+  ```jsx
+  // Internal path
+  <Image src="/profile.png" />
+
+  // External URL
+  <Image src="https://example.com/profile.png" />
+
+  // Static import
+  import profile from './profile.png'
+  <Image src={profile} />
+  ```
+
+  For security, the Image Optimization API will not forward headers when fetching the `src` image. If the source image requires authentication, use the `unoptimized` prop.
+</ParamField>
+
+<ParamField path="alt" type="string" required>
+  Describes the image for screen readers and search engines. It is also the fallback text if images are disabled or an error occurs.
+
+  It should contain text that could replace the image without changing the meaning of the page. If the image is purely decorative, use an empty string (`alt=""`).
+</ParamField>
+
+<ParamField path="width" type="number">
+  The intrinsic width of the image in pixels. Used to infer the correct aspect ratio and avoid layout shift. Does not determine the rendered size.
+
+  Required unless the image is statically imported or uses the `fill` prop.
+</ParamField>
+
+<ParamField path="height" type="number">
+  The intrinsic height of the image in pixels. Required under the same conditions as `width`.
+</ParamField>
+
+<ParamField path="fill" type="boolean">
+  Causes the image to expand to fill the size of the parent element.
+
+  The parent must have `position: "relative"`, `"fixed"`, or `"absolute"`. By default, the `<img>` uses `position: "absolute"`.
+
+  Use `objectFit` to control how the image fills the container: `"contain"` preserves aspect ratio, `"cover"` crops to fill.
+</ParamField>
+
+<ParamField path="loader" type="function">
+  A custom function to generate image URLs. Receives `src`, `width`, and `quality` parameters and returns a URL string.
+
+  ```js
+  'use client'
+
+  import Image from 'next/image'
+
+  const imageLoader = ({ src, width, quality }) => {
+    return `https://example.com/${src}?w=${width}&q=${quality || 75}`
+  }
+
+  export default function Page() {
+    return (
+      <Image
+        loader={imageLoader}
+        src="me.png"
+        alt="Picture of the author"
+        width={500}
+        height={500}
+      />
+    )
+  }
+  ```
+
+  <Note>Using props like `loader` that accept a function requires Client Components.</Note>
+</ParamField>
+
+<ParamField path="sizes" type="string">
+  A string that provides information about how wide the image will be at different breakpoints. Used by the browser to choose the most appropriate size from the generated `srcset`.
+
+  ```jsx
+  <Image
+    fill
+    src="/example.png"
+    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+  />
+  ```
+
+  Should be used when the image uses the `fill` prop or CSS makes the image responsive. Without `sizes`, the browser assumes the image is as wide as the viewport.
+</ParamField>
+
+<ParamField path="quality" type="number">
+  An integer between `1` and `100` that sets the quality of the optimized image. Defaults to `75`. Higher values increase file size and visual fidelity.
+
+  If `qualities` is configured in `next.config.js`, the value must match one of the allowed entries.
+</ParamField>
+
+<ParamField path="preload" type="boolean">
+  Whether the image should be preloaded. Defaults to `false`.
+
+  Set to `true` when the image is the Largest Contentful Paint (LCP) element or is above the fold. Inserts a `<link>` preload tag in `<head>`.
+
+  <Note>When `loading` or `fetchPriority` props are used, `preload` should not be set. In most cases, `loading="eager"` or `fetchPriority="high"` are better alternatives.</Note>
+</ParamField>
+
+<ParamField path="placeholder" type="string">
+  A placeholder to use while the image is loading. Defaults to `"empty"`.
+
+  - `"empty"`: No placeholder during loading.
+  - `"blur"`: Use a blurred version of the image. Requires the `blurDataURL` prop.
+  - `"data:image/..."`: Uses a Data URL as the placeholder.
+</ParamField>
+
+<ParamField path="style" type="object">
+  CSS styles for the underlying image element.
+
+  ```jsx
+  const imageStyle = {
+    borderRadius: '50%',
+    border: '1px solid #fff',
+    width: '100px',
+    height: 'auto',
+  }
+
+  export default function ProfileImage() {
+    return <Image src="..." style={imageStyle} />
+  }
+  ```
+
+  If using `style` to set a custom width, also set `height: 'auto'` to preserve the aspect ratio.
+</ParamField>
+
+<ParamField path="onLoad" type="function">
+  Callback invoked once the image is completely loaded and the placeholder has been removed. Receives the event with the underlying `<img>` element as `target`.
+
+  ```jsx
+  <Image onLoad={(e) => console.log(e.target.naturalWidth)} />
+  ```
+
+  <Note>Requires a Client Component.</Note>
+</ParamField>
+
+<ParamField path="onError" type="function">
+  Callback invoked if the image fails to load.
+
+  ```jsx
+  <Image onError={(e) => console.error(e.target.id)} />
+  ```
+
+  <Note>Requires a Client Component.</Note>
+</ParamField>
+
+<ParamField path="loading" type="string">
+  Controls when the image should start loading. Defaults to `"lazy"`.
+
+  - `"lazy"`: Defer loading until near the viewport.
+  - `"eager"`: Load immediately regardless of position.
+</ParamField>
+
+<ParamField path="blurDataURL" type="string">
+  A Data URL used as placeholder before the image loads. Used with `placeholder="blur"`. The image is automatically enlarged and blurred, so a very small image (10px or less) is recommended.
+
+  For static imports of `jpg`, `png`, `webp`, or `avif` files, `blurDataURL` is set automatically.
+</ParamField>
+
+<ParamField path="unoptimized" type="boolean">
+  When `true`, the source image is served as-is without changing quality, size, or format. Defaults to `false`.
+
+  Useful for images that don't benefit from optimization (small images, SVGs, animated GIFs).
+</ParamField>
+
+<ParamField path="overrideSrc" type="string">
+  Overrides the `src` attribute of the generated `<img>` while keeping the `srcset` generated from the original `src`. Useful when upgrading from `<img>` to `<Image>` and maintaining existing SEO.
+</ParamField>
+
+<ParamField path="decoding" type="string">
+  A hint to the browser about how to decode the image. Defaults to `"async"`.
+
+  - `"async"`: Decode asynchronously, allow other content to render first.
+  - `"sync"`: Decode synchronously for atomic presentation.
+  - `"auto"`: Let the browser choose.
+</ParamField>
+
+### Deprecated props
+
+<ParamField path="onLoadingComplete" type="function" deprecated>
+  Deprecated in Next.js 14. Use [`onLoad`](#onload) instead. A callback invoked once the image loads completely, receiving the underlying `<img>` element.
+</ParamField>
+
+## Configuration options
+
+You can configure the Image component in `next.config.js`:
+
+### `remotePatterns`
+
+Allows images from specific external paths and blocks all others.
+
+```js filename="next.config.js"
+module.exports = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'example.com',
+        port: '',
+        pathname: '/account123/**',
+        search: '',
+      },
+    ],
+  },
+}
+```
+
+Also accepts an array of `URL` objects:
+
+```js filename="next.config.js"
+module.exports = {
+  images: {
+    remotePatterns: [new URL('https://example.com/account123/**')],
+  },
+}
+```
+
+Wildcard patterns: `*` matches a single path segment or subdomain; `**` matches any number at the end or beginning.
+
+### `localPatterns`
+
+Allows images from specific local paths and blocks all others.
+
+```js filename="next.config.js"
+module.exports = {
+  images: {
+    localPatterns: [
+      {
+        pathname: '/assets/images/**',
+        search: '',
+      },
+    ],
+  },
+}
+```
+
+### `deviceSizes`
+
+List of device width breakpoints. Defaults to `[640, 750, 828, 1080, 1200, 1920, 2048, 3840]`.
+
+### `imageSizes`
+
+List of image widths concatenated with `deviceSizes` for the full `srcset`. Defaults to `[32, 48, 64, 96, 128, 256, 384]`.
+
+### `qualities`
+
+Allowed quality values. Defaults to `[75]`.
+
+```js filename="next.config.js"
+module.exports = {
+  images: {
+    qualities: [25, 50, 75, 100],
+  },
+}
+```
+
+### `formats`
+
+Image formats to generate. Defaults to `['image/webp']`. You can enable AVIF support:
+
+```js filename="next.config.js"
+module.exports = {
+  images: {
+    formats: ['image/avif', 'image/webp'],
+  },
+}
+```
+
+### `loaderFile`
+
+Path to a custom image optimization service.
+
+```js filename="next.config.js"
+module.exports = {
+  images: {
+    loader: 'custom',
+    loaderFile: './my/image/loader.js',
+  },
+}
+```
+
+### `minimumCacheTTL`
+
+Cache TTL in seconds for optimized images. Defaults to `14400` (4 hours).
+
+### `maximumRedirects`
+
+Number of HTTP redirects to follow when fetching remote images. Defaults to `3`.
+
+### `maximumDiskCacheSize`
+
+Maximum disk cache size in bytes. Defaults to 50% of available disk space.
+
+### `dangerouslyAllowSVG`
+
+Allow serving SVG images through the optimization API. Not recommended without also setting `contentSecurityPolicy`.
+
+## Functions
+
+### `getImageProps`
+
+Get the props that would be passed to the underlying `<img>` element.
+
+```jsx
+import { getImageProps } from 'next/image'
+
+const { props } = getImageProps({
+  src: 'https://example.com/image.jpg',
+  alt: 'A scenic mountain view',
+  width: 1200,
+  height: 800,
+})
+
+function ImageWithCaption() {
+  return (
+    <figure>
+      <img {...props} />
+      <figcaption>A scenic mountain view</figcaption>
+    </figure>
+  )
+}
+```
+
+Useful for art direction (different images for mobile/desktop) and CSS background images.
+
+## Examples
+
+### Responsive images
+
+```jsx
+import Image from 'next/image'
+import mountains from '../public/mountains.jpg'
+
+export default function Responsive() {
+  return (
+    <Image
+      alt="Mountains"
+      src={mountains}
+      sizes="100vw"
+      style={{
+        width: '100%',
+        height: 'auto',
+      }}
+    />
+  )
+}
+```
+
+### Fill container
+
+```jsx
+import Image from 'next/image'
+
+export default function Fill() {
+  return (
+    <div style={{ position: 'relative', width: '400px', height: '300px' }}>
+      <Image
+        alt="Mountains"
+        src="/mountains.jpg"
+        fill
+        sizes="(min-width: 808px) 50vw, 100vw"
+        style={{
+          objectFit: 'cover',
+        }}
+      />
+    </div>
+  )
+}
+```
+
+### Theme detection
+
+```css filename="components/theme-image.module.css"
+.imgDark {
+  display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .imgLight {
+    display: none;
+  }
+  .imgDark {
+    display: unset;
+  }
+}
+```
+
+```tsx filename="components/theme-image.tsx"
+import styles from './theme-image.module.css'
+import Image, { ImageProps } from 'next/image'
+
+type Props = Omit<ImageProps, 'src' | 'preload' | 'loading'> & {
+  srcLight: string
+  srcDark: string
+}
+
+const ThemeImage = (props: Props) => {
+  const { srcLight, srcDark, ...rest } = props
+
+  return (
+    <>
+      <Image {...rest} src={srcLight} className={styles.imgLight} />
+      <Image {...rest} src={srcDark} className={styles.imgDark} />
+    </>
+  )
+}
+```
+
+## Version history
+
+| Version | Changes |
+| --- | --- |
+| `v16.1.7` | `maximumDiskCacheSize` configuration added. |
+| `v16.1.2` | `maximumResponseBody` configuration added. |
+| `v16.0.0` | `qualities` default changed to `[75]`, `preload` prop added, `priority` deprecated. |
+| `v15.3.0` | `remotePatterns` added support for URL objects. |
+| `v15.0.0` | `contentDispositionType` default changed to `attachment`. |
+| `v14.2.23` | `qualities` configuration added. |

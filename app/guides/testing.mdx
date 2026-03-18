@@ -1,0 +1,368 @@
+---
+title: Testing
+description: Learn how to set up Next.js with four commonly used testing tools — Cypress, Playwright, Vitest, and Jest.
+---
+
+In React and Next.js, there are a few different types of tests you can write, each with its own purpose and use cases.
+
+## Types of tests
+
+<AccordionGroup>
+  <Accordion title="Unit Testing">
+    Involves testing individual units (or blocks of code) in isolation. In React, a unit can be a single function, hook, or component.
+  </Accordion>
+  <Accordion title="Component Testing">
+    A more focused version of unit testing where the primary subject of the tests is React components. This may involve testing how components are rendered, their interaction with props, and their behavior in response to user events.
+  </Accordion>
+  <Accordion title="Integration Testing">
+    Involves testing how multiple units work together. This can be a combination of components, hooks, and functions.
+  </Accordion>
+  <Accordion title="End-to-End (E2E) Testing">
+    Involves testing user flows in an environment that simulates real user scenarios, like the browser. This means testing specific tasks (e.g. signup flow) in a production-like environment.
+  </Accordion>
+  <Accordion title="Snapshot Testing">
+    Involves capturing the rendered output of a component and saving it to a snapshot file. When tests run, the current rendered output of the component is compared against the saved snapshot. Changes in the snapshot are used to indicate unexpected changes in behavior.
+  </Accordion>
+</AccordionGroup>
+
+<Note>
+  Since `async` Server Components are new to the React ecosystem, some tools do not fully support them. In the meantime, we recommend using **End-to-End Testing** over **Unit Testing** for `async` components.
+</Note>
+
+## Jest
+
+Jest and React Testing Library are frequently used together for **Unit Testing** and **Snapshot Testing**.
+
+### Quickstart
+
+You can use `create-next-app` with the Next.js [with-jest](https://github.com/vercel/next.js/tree/canary/examples/with-jest) example to quickly get started:
+
+<CodeGroup>
+  ```bash npm
+  npx create-next-app@latest --example with-jest with-jest-app
+  ```
+  ```bash yarn
+  yarn create next-app --example with-jest with-jest-app
+  ```
+  ```bash pnpm
+  pnpm create next-app --example with-jest with-jest-app
+  ```
+  ```bash bun
+  bun create next-app --example with-jest with-jest-app
+  ```
+</CodeGroup>
+
+### Manual setup
+
+<Steps>
+  <Step title="Install dependencies">
+    <CodeGroup>
+      ```bash npm
+      npm install -D jest jest-environment-jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom ts-node @types/jest
+      ```
+      ```bash yarn
+      yarn add -D jest jest-environment-jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom ts-node @types/jest
+      ```
+      ```bash pnpm
+      pnpm add -D jest jest-environment-jsdom @testing-library/react @testing-library/dom @testing-library/jest-dom ts-node @types/jest
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Generate Jest configuration">
+    <CodeGroup>
+      ```bash npm
+      npm init jest@latest
+      ```
+      ```bash yarn
+      yarn create jest@latest
+      ```
+      ```bash pnpm
+      pnpm create jest@latest
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Update jest.config">
+    Update your config file to use `next/jest`:
+
+    <Tabs>
+      <Tab title="TypeScript">
+        ```ts filename="jest.config.ts"
+        import type { Config } from 'jest'
+        import nextJest from 'next/jest.js'
+
+        const createJestConfig = nextJest({
+          // Provide the path to your Next.js app to load next.config.js and .env files in your test environment
+          dir: './',
+        })
+
+        // Add any custom config to be passed to Jest
+        const config: Config = {
+          coverageProvider: 'v8',
+          testEnvironment: 'jsdom',
+          // Add more setup options before each test is run
+          // setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+        }
+
+        // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
+        export default createJestConfig(config)
+        ```
+      </Tab>
+      <Tab title="JavaScript">
+        ```js filename="jest.config.js"
+        const nextJest = require('next/jest')
+
+        /** @type {import('jest').Config} */
+        const createJestConfig = nextJest({
+          // Provide the path to your Next.js app to load next.config.js and .env files in your test environment
+          dir: './',
+        })
+
+        // Add any custom config to be passed to Jest
+        const config = {
+          coverageProvider: 'v8',
+          testEnvironment: 'jsdom',
+          // Add more setup options before each test is run
+          // setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+        }
+
+        // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
+        module.exports = createJestConfig(config)
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Add test script">
+    Add a Jest `test` script to your `package.json` file:
+
+    ```json filename="package.json"
+    {
+      "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "test": "jest",
+        "test:watch": "jest --watch"
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Write your first test">
+    Create a `__tests__` folder and add a test:
+
+    ```jsx filename="app/page.js"
+    import Link from 'next/link'
+
+    export default function Page() {
+      return (
+        <div>
+          <h1>Home</h1>
+          <Link href="/about">About</Link>
+        </div>
+      )
+    }
+    ```
+
+    ```jsx filename="__tests__/page.test.jsx"
+    import '@testing-library/jest-dom'
+    import { render, screen } from '@testing-library/react'
+    import Page from '../app/page'
+
+    describe('Page', () => {
+      it('renders a heading', () => {
+        render(<Page />)
+
+        const heading = screen.getByRole('heading', { level: 1 })
+
+        expect(heading).toBeInTheDocument()
+      })
+    })
+    ```
+  </Step>
+</Steps>
+
+## Vitest
+
+Vitest and React Testing Library are frequently used together for **Unit Testing**.
+
+### Quickstart
+
+<CodeGroup>
+  ```bash npm
+  npx create-next-app@latest --example with-vitest with-vitest-app
+  ```
+  ```bash yarn
+  yarn create next-app --example with-vitest with-vitest-app
+  ```
+  ```bash pnpm
+  pnpm create next-app --example with-vitest with-vitest-app
+  ```
+</CodeGroup>
+
+### Manual setup
+
+<Steps>
+  <Step title="Install dependencies">
+    <CodeGroup>
+      ```bash npm
+      npm install -D vitest @vitejs/plugin-react jsdom @testing-library/react @testing-library/dom vite-tsconfig-paths
+      ```
+      ```bash yarn
+      yarn add -D vitest @vitejs/plugin-react jsdom @testing-library/react @testing-library/dom vite-tsconfig-paths
+      ```
+      ```bash pnpm
+      pnpm add -D vitest @vitejs/plugin-react jsdom @testing-library/react @testing-library/dom vite-tsconfig-paths
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Create vitest.config">
+    <Tabs>
+      <Tab title="TypeScript">
+        ```ts filename="vitest.config.mts"
+        import { defineConfig } from 'vitest/config'
+        import react from '@vitejs/plugin-react'
+        import tsconfigPaths from 'vite-tsconfig-paths'
+
+        export default defineConfig({
+          plugins: [tsconfigPaths(), react()],
+          test: {
+            environment: 'jsdom',
+          },
+        })
+        ```
+      </Tab>
+      <Tab title="JavaScript">
+        ```js filename="vitest.config.js"
+        import { defineConfig } from 'vitest/config'
+        import react from '@vitejs/plugin-react'
+
+        export default defineConfig({
+          plugins: [react()],
+          test: {
+            environment: 'jsdom',
+          },
+        })
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+
+  <Step title="Write your first test">
+    ```tsx filename="__tests__/page.test.tsx"
+    import { expect, test } from 'vitest'
+    import { render, screen } from '@testing-library/react'
+    import Page from '../app/page'
+
+    test('Page', () => {
+      render(<Page />)
+      expect(screen.getByRole('heading', { level: 1, name: 'Home' })).toBeDefined()
+    })
+    ```
+  </Step>
+</Steps>
+
+## Playwright
+
+Playwright is a testing framework that lets you automate Chromium, Firefox, and WebKit with a single API for **End-to-End (E2E)** testing.
+
+### Quickstart
+
+<CodeGroup>
+  ```bash npm
+  npx create-next-app@latest --example with-playwright with-playwright-app
+  ```
+  ```bash yarn
+  yarn create next-app --example with-playwright with-playwright-app
+  ```
+  ```bash pnpm
+  pnpm create next-app --example with-playwright with-playwright-app
+  ```
+</CodeGroup>
+
+### Manual setup
+
+<Steps>
+  <Step title="Install Playwright">
+    <CodeGroup>
+      ```bash npm
+      npm init playwright
+      ```
+      ```bash yarn
+      yarn create playwright
+      ```
+      ```bash pnpm
+      pnpm create playwright
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Create test pages">
+    ```tsx filename="app/page.tsx"
+    import Link from 'next/link'
+
+    export default function Page() {
+      return (
+        <div>
+          <h1>Home</h1>
+          <Link href="/about">About</Link>
+        </div>
+      )
+    }
+    ```
+
+    ```tsx filename="app/about/page.tsx"
+    import Link from 'next/link'
+
+    export default function Page() {
+      return (
+        <div>
+          <h1>About</h1>
+          <Link href="/">Home</Link>
+        </div>
+      )
+    }
+    ```
+  </Step>
+
+  <Step title="Write your first E2E test">
+    ```ts filename="tests/example.spec.ts"
+    import { test, expect } from '@playwright/test'
+
+    test('should navigate to the about page', async ({ page }) => {
+      // Start from the index page (the baseURL is set via the webServer in the playwright.config.ts)
+      await page.goto('http://localhost:3000/')
+      // Find an element with the text 'About' and click on it
+      await page.click('text=About')
+      // The new URL should be "/about" (baseURL is used there)
+      await expect(page).toHaveURL('http://localhost:3000/about')
+      // The new page should contain an h1 with "About"
+      await expect(page.locator('h1')).toContainText('About')
+    })
+    ```
+  </Step>
+
+  <Step title="Run your tests">
+    Run `npm run build` and `npm run start`, then run `npx playwright test` in another terminal window.
+  </Step>
+</Steps>
+
+## Additional resources
+
+<CardGroup cols={2}>
+  <Card title="Next.js with Jest" icon="flask" href="https://github.com/vercel/next.js/tree/canary/examples/with-jest">
+    Official Jest example for Next.js.
+  </Card>
+  <Card title="Next.js with Vitest" icon="bolt" href="https://github.com/vercel/next.js/tree/canary/examples/with-vitest">
+    Official Vitest example for Next.js.
+  </Card>
+  <Card title="Next.js with Playwright" icon="browser" href="https://github.com/vercel/next.js/tree/canary/examples/with-playwright">
+    Official Playwright example for Next.js.
+  </Card>
+  <Card title="Testing Playground" icon="gamepad" href="https://testing-playground.com/">
+    Use good testing practices to match elements.
+  </Card>
+</CardGroup>

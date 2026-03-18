@@ -1,0 +1,81 @@
+---
+title: Accessibility
+description: The built-in accessibility features of Next.js, including route announcements, integrated ESLint rules, and resources for building inclusive web applications.
+---
+
+The Next.js team is committed to making Next.js accessible to all developers and their end-users. By adding accessibility features to Next.js by default, we aim to make the Web more inclusive for everyone.
+
+## Route Announcements
+
+When transitioning between pages rendered on the server (e.g. using the `<a href>` tag), screen readers and other assistive technology announce the page title when the page loads, so users understand that the page has changed.
+
+Next.js also supports **client-side transitions** for improved performance (using `next/link`). To ensure client-side transitions are also announced to assistive technology, Next.js includes a **route announcer** by default.
+
+### How the route announcer works
+
+The Next.js route announcer looks for the page name to announce by inspecting, in order:
+
+<Steps>
+  <Step title="document.title">
+    The value of `document.title` is checked first. Set a unique, descriptive title on each page for the best experience.
+  </Step>
+  <Step title="<h1> element">
+    If `document.title` is not set, the text content of the first `<h1>` element on the page is used.
+  </Step>
+  <Step title="URL pathname">
+    As a fallback, the URL pathname is announced.
+  </Step>
+</Steps>
+
+<Tip>
+For the most accessible user experience, ensure each page in your application has a unique and descriptive title. In the App Router, set the title using the [Metadata API](/app/api-reference/functions/generate-metadata). In the Pages Router, use the `next/head` component.
+</Tip>
+
+## Linting
+
+Next.js provides an integrated ESLint experience out of the box, including custom rules for Next.js. By default, Next.js includes `eslint-plugin-jsx-a11y` to help catch accessibility issues early.
+
+### Accessibility rules enabled by default
+
+`eslint-plugin-jsx-a11y` warns on common accessibility mistakes, including:
+
+| Rule | What it checks |
+|---|---|
+| [aria-props](https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/HEAD/docs/rules/aria-props.md) | Valid ARIA property names |
+| [aria-proptypes](https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/HEAD/docs/rules/aria-proptypes.md) | Valid ARIA property values |
+| [aria-unsupported-elements](https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/HEAD/docs/rules/aria-unsupported-elements.md) | ARIA roles on elements that don't support them |
+| [role-has-required-aria-props](https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/HEAD/docs/rules/role-has-required-aria-props.md) | Required ARIA properties for roles |
+| [role-supports-aria-props](https://github.com/jsx-eslint/eslint-plugin-jsx-a11y/blob/HEAD/docs/rules/role-supports-aria-props.md) | ARIA properties supported by the assigned role |
+
+For example, the plugin ensures you add alt text to `img` tags, use correct `aria-*` attributes, and use correct `role` attributes.
+
+```jsx
+// This will trigger an ESLint warning
+<img src="/logo.png" />
+
+// This is correct
+<img src="/logo.png" alt="Company logo" />
+```
+
+## Accessibility Resources
+
+The following resources can help you build more accessible applications:
+
+<CardGroup cols={2}>
+  <Card title="WebAIM WCAG Checklist" icon="list-check" href="https://webaim.org/standards/wcag/checklist">
+    A plain-language checklist of WCAG success criteria.
+  </Card>
+  <Card title="WCAG 2.2 Guidelines" icon="book" href="https://www.w3.org/TR/WCAG22/">
+    The official Web Content Accessibility Guidelines from the W3C.
+  </Card>
+  <Card title="The A11y Project" icon="universal-access" href="https://www.a11yproject.com/">
+    Community-driven resource with patterns, checklists, and articles.
+  </Card>
+  <Card title="Color Contrast" icon="palette" href="https://developer.mozilla.org/docs/Web/Accessibility/Understanding_WCAG/Perceivable/Color_contrast">
+    MDN guide on checking color contrast ratios between foreground and background elements.
+  </Card>
+</CardGroup>
+
+<Tip>
+Use [`prefers-reduced-motion`](https://web.dev/prefers-reduced-motion/) when working with animations to respect users' motion preferences.
+</Tip>

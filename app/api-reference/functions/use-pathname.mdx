@@ -1,0 +1,87 @@
+---
+title: usePathname
+description: API reference for the usePathname hook, which reads the current URL pathname in Client Components.
+---
+
+`usePathname` is a **Client Component** hook that reads the current URL's **pathname**.
+
+```tsx filename="app/example-client-component.tsx"
+'use client'
+
+import { usePathname } from 'next/navigation'
+
+export default function ExampleClientComponent() {
+  const pathname = usePathname()
+  return <p>Current pathname: {pathname}</p>
+}
+```
+
+`usePathname` intentionally requires a Client Component. Client Components are not a de-optimization — they are an integral part of the Server Components architecture. A component with `usePathname` is rendered into HTML on initial page load, then re-renders based on the current state on navigation.
+
+<Note>Reading the current URL from a Server Component is not supported. This design preserves layout state across page navigations.</Note>
+
+## Parameters
+
+`usePathname` does not take any parameters.
+
+## Returns
+
+`usePathname` returns a string of the current URL's pathname.
+
+| URL | Returned value |
+| --- | --- |
+| `/` | `'/'` |
+| `/dashboard` | `'/dashboard'` |
+| `/dashboard?v=2` | `'/dashboard'` |
+| `/blog/hello-world` | `'/blog/hello-world'` |
+
+## Examples
+
+### Responding to route changes
+
+```tsx filename="app/example-client-component.tsx"
+'use client'
+
+import { useEffect } from 'react'
+import { usePathname, useSearchParams } from 'next/navigation'
+
+function ExampleClientComponent() {
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    // Do something here...
+  }, [pathname, searchParams])
+}
+```
+
+### Avoiding hydration mismatch with rewrites
+
+When a page is prerendered and then reached through a rewrite, the browser URL may differ from the server's. To avoid mismatches, render a stable fallback and update after mount:
+
+```tsx filename="app/example-client-component.tsx"
+'use client'
+
+import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
+
+export default function PathnameBadge() {
+  const pathname = usePathname()
+  const [clientPathname, setClientPathname] = useState('')
+
+  useEffect(() => {
+    setClientPathname(pathname)
+  }, [pathname])
+
+  return (
+    <p>
+      Current pathname: <span>{clientPathname}</span>
+    </p>
+  )
+}
+```
+
+## Version history
+
+| Version | Changes |
+| --- | --- |
+| `v13.0.0` | `usePathname` introduced. |

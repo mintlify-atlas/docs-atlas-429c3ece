@@ -1,0 +1,167 @@
+---
+title: getStaticProps
+description: API reference for getStaticProps. Learn how to use getStaticProps to generate static pages with Next.js.
+---
+
+Exporting a function called `getStaticProps` pre-renders a page at build time using the props returned from the function.
+
+## Example
+
+```tsx filename="pages/index.tsx"
+import type { InferGetStaticPropsType, GetStaticProps } from 'next'
+
+type Repo = {
+  name: string
+  stargazers_count: number
+}
+
+export const getStaticProps = (async (context) => {
+  const res = await fetch('https://api.github.com/repos/vercel/next.js')
+  const repo = await res.json()
+  return { props: { repo } }
+}) satisfies GetStaticProps<{
+  repo: Repo
+}>
+
+export default function Page({
+  repo,
+}: InferGetStaticPropsType<typeof getStaticProps>) {
+  return repo.stargazers_count
+}
+```
+
+Imports used in `getStaticProps` are **not bundled for the client-side**. You can write server-side code directly, including database queries.
+
+## `context` parameter
+
+| Key | Description |
+|-----|-------------|
+| `params` | Route parameters for dynamic routes. For `[id].js`, `params` is `{ id: ... }`. Use with `getStaticPaths`. |
+| `preview` | `true` if the page is in Preview Mode (deprecated, use `draftMode`). |
+| `previewData` | Preview data set by `setPreviewData` (deprecated). |
+| `draftMode` | `true` if the page is in Draft Mode. |
+| `locale` | Contains the active locale (if enabled). |
+| `locales` | Contains all supported locales (if enabled). |
+| `defaultLocale` | Contains the configured default locale (if enabled). |
+| `revalidateReason` | Reason the function was called: `'build'`, `'stale'`, or `'on-demand'`. |
+
+## Return values
+
+The `getStaticProps` function should return an object with one of `props`, `redirect`, or `notFound`, plus an optional `revalidate` property.
+
+### `props`
+
+```jsx
+export async function getStaticProps(context) {
+  return {
+    props: { message: 'Next.js is awesome' },
+  }
+}
+```
+
+### `revalidate`
+
+The number of seconds after which a page re-generation can occur (defaults to `false`):
+
+```js
+export async function getStaticProps() {
+  const res = await fetch('https://.../posts')
+  const posts = await res.json()
+
+  return {
+    props: { posts },
+    // Next.js will attempt to re-generate the page at most once every 10 seconds
+    revalidate: 10,
+  }
+}
+```
+
+The `x-nextjs-cache` header can be `MISS`, `STALE`, or `HIT` to indicate cache status.
+
+### `notFound`
+
+Allows the page to return a 404 status:
+
+```js
+export async function getStaticProps(context) {
+  const res = await fetch(`https://.../data`)
+  const data = await res.json()
+
+  if (!data) {
+    return {
+      notFound: true,
+    }
+  }
+
+  return {
+    props: { data },
+  }
+}
+```
+
+### `redirect`
+
+Redirects to internal or external resources:
+
+```js
+export async function getStaticProps(context) {
+  const res = await fetch(`https://...`)
+  const data = await res.json()
+
+  if (!data) {
+    return {
+      redirect: {
+        destination: '/',
+        permanent: false,
+      },
+    }
+  }
+
+  return {
+    props: { data },
+  }
+}
+```
+
+## Reading files
+
+Use `process.cwd()` to get the full file path (not `__dirname`):
+
+```jsx
+import { promises as fs } from 'fs'
+import path from 'path'
+
+export async function getStaticProps() {
+  const postsDirectory = path.join(process.cwd(), 'posts')
+  const filenames = await fs.readdir(postsDirectory)
+
+  const posts = filenames.map(async (filename) => {
+    const filePath = path.join(postsDirectory, filename)
+    const fileContents = await fs.readFile(filePath, 'utf8')
+    return { filename, content: fileContents }
+  })
+
+  return {
+    props: {
+      posts: await Promise.all(posts),
+    },
+  }
+}
+```
+
+## Restrictions
+
+- `getStaticProps` can only be exported from a **page**
+- Cannot be used in `_app`, `_document`, or `_error`
+- Must be exported as a standalone function, not a property of the page component
+
+## Version history
+
+| Version | Changes |
+|---------|---------|
+| `v13.4.0` | App Router is now stable with simplified data fetching |
+| `v12.2.0` | On-Demand ISR is stable |
+| `v12.1.0` | On-Demand ISR added (beta) |
+| `v10.0.0` | `locale`, `locales`, `defaultLocale`, and `notFound` options added |
+| `v9.5.0` | Stable ISR |
+| `v9.3.0` | `getStaticProps` introduced |

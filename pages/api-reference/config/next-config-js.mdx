@@ -1,0 +1,273 @@
+---
+title: next.config.js options
+description: Learn about the configuration options available in next.config.js for the Pages Router.
+---
+
+The `next.config.js` file is at the root of your project and configures Next.js behavior. It exports a Node.js module:
+
+```js filename="next.config.js"
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  /* config options here */
+}
+
+module.exports = nextConfig
+```
+
+You can also use `next.config.ts` with TypeScript:
+
+```ts filename="next.config.ts"
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  /* config options here */
+}
+
+export default nextConfig
+```
+
+## Common options
+
+### `reactStrictMode`
+
+Enable React [Strict Mode](https://react.dev/reference/react/StrictMode) to help detect potential issues:
+
+```js filename="next.config.js"
+module.exports = {
+  reactStrictMode: true,
+}
+```
+
+### `env`
+
+Add environment variables to the JavaScript bundle:
+
+```js filename="next.config.js"
+module.exports = {
+  env: {
+    customKey: 'my-value',
+  },
+}
+```
+
+Access in your code with `process.env.customKey`. Prefer `.env` files for most use cases.
+
+### `basePath`
+
+Deploy a Next.js application under a sub-path of a domain:
+
+```js filename="next.config.js"
+module.exports = {
+  basePath: '/docs',
+}
+```
+
+### `redirects`
+
+Configure URL redirects:
+
+```js filename="next.config.js"
+module.exports = {
+  async redirects() {
+    return [
+      {
+        source: '/about',
+        destination: '/',
+        permanent: true,
+      },
+    ]
+  },
+}
+```
+
+### `rewrites`
+
+Map incoming request paths to different destination paths:
+
+```js filename="next.config.js"
+module.exports = {
+  async rewrites() {
+    return [
+      {
+        source: '/about',
+        destination: '/about-2',
+      },
+    ]
+  },
+}
+```
+
+### `headers`
+
+Set custom HTTP response headers:
+
+```js filename="next.config.js"
+module.exports = {
+  async headers() {
+    return [
+      {
+        source: '/about',
+        headers: [
+          {
+            key: 'x-custom-header',
+            value: 'my custom header value',
+          },
+        ],
+      },
+    ]
+  },
+}
+```
+
+### `images`
+
+Configure the Next.js Image Optimization API:
+
+```js filename="next.config.js"
+module.exports = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'example.com',
+      },
+    ],
+  },
+}
+```
+
+### `output`
+
+Change the build output type:
+
+```js filename="next.config.js"
+module.exports = {
+  output: 'standalone', // or 'export'
+}
+```
+
+| Value | Description |
+|-------|-------------|
+| (default) | Normal Next.js output |
+| `'standalone'` | Minimal output for Docker/serverless deployment |
+| `'export'` | Fully static HTML/CSS/JS output |
+
+### `pageExtensions`
+
+Extend the default page file extensions:
+
+```js filename="next.config.js"
+module.exports = {
+  pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'md', 'mdx'],
+}
+```
+
+### `trailingSlash`
+
+Ensure pages are always served with a trailing slash:
+
+```js filename="next.config.js"
+module.exports = {
+  trailingSlash: true,
+}
+```
+
+### `sassOptions`
+
+Configure Sass options:
+
+```js filename="next.config.js"
+module.exports = {
+  sassOptions: {
+    additionalData: `$var: red;`,
+  },
+}
+```
+
+### `transpilePackages`
+
+Automatically transpile and bundle dependencies from local packages or from external dependencies:
+
+```js filename="next.config.js"
+module.exports = {
+  transpilePackages: ['@acme/ui', 'lodash-es'],
+}
+```
+
+### `webpack`
+
+Extend the Next.js webpack configuration:
+
+```js filename="next.config.js"
+module.exports = {
+  webpack: (config, { buildId, dev, isServer, defaultLoaders, nextRuntime, webpack }) => {
+    // Important: return the modified config
+    return config
+  },
+}
+```
+
+### `i18n`
+
+Configure internationalized routing (Pages Router only):
+
+```js filename="next.config.js"
+module.exports = {
+  i18n: {
+    locales: ['en-US', 'fr', 'nl-NL'],
+    defaultLocale: 'en-US',
+  },
+}
+```
+
+See [Internationalization](/pages/guides/internationalization) for details.
+
+### `compress`
+
+Disable gzip compression (useful when deploying behind a proxy that handles compression):
+
+```js filename="next.config.js"
+module.exports = {
+  compress: false,
+}
+```
+
+### `poweredByHeader`
+
+Disable the `X-Powered-By` response header:
+
+```js filename="next.config.js"
+module.exports = {
+  poweredByHeader: false,
+}
+```
+
+### `distDir`
+
+Change the build output directory:
+
+```js filename="next.config.js"
+module.exports = {
+  distDir: 'build',
+}
+```
+
+### `generateEtags`
+
+Disable ETag generation for pages:
+
+```js filename="next.config.js"
+module.exports = {
+  generateEtags: false,
+}
+```
+
+### `productionBrowserSourceMaps`
+
+Enable browser source maps in the production build:
+
+```js filename="next.config.js"
+module.exports = {
+  productionBrowserSourceMaps: true,
+}
+```

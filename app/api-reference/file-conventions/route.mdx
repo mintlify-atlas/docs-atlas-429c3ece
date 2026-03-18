@@ -1,0 +1,228 @@
+---
+title: route.js
+description: API reference for the route.js file convention, which creates custom server-side request handlers using the Web Request and Response APIs.
+---
+
+Route Handlers create custom request handlers for a given route using the Web [Request](https://developer.mozilla.org/docs/Web/API/Request) and [Response](https://developer.mozilla.org/docs/Web/API/Response) APIs.
+
+```ts filename="route.ts"
+export async function GET() {
+  return Response.json({ message: 'Hello World' })
+}
+```
+
+## HTTP methods
+
+The following HTTP methods are supported: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`, and `OPTIONS`.
+
+```ts filename="route.ts"
+export async function GET(request: Request) {}
+export async function HEAD(request: Request) {}
+export async function POST(request: Request) {}
+export async function PUT(request: Request) {}
+export async function DELETE(request: Request) {}
+export async function PATCH(request: Request) {}
+// If OPTIONS is not defined, Next.js auto-implements it with the correct Allow header
+export async function OPTIONS(request: Request) {}
+```
+
+## Parameters
+
+<ParamField path="request" type="NextRequest">
+  An extension of the Web `Request` API. `NextRequest` provides additional methods including easy access to `cookies` and a parsed `nextUrl` object.
+
+  ```ts filename="route.ts"
+  import type { NextRequest } from 'next/server'
+
+  export async function GET(request: NextRequest) {
+    const url = request.nextUrl
+  }
+  ```
+</ParamField>
+
+<ParamField path="context" type="object">
+  An optional second parameter containing:
+
+  <Expandable title="properties">
+    <ResponseField name="params" type="Promise<object>">
+      A promise that resolves to an object containing the dynamic route parameters for the current route.
+
+      ```ts filename="app/dashboard/[team]/route.ts"
+      export async function GET(
+        request: Request,
+        { params }: { params: Promise<{ team: string }> }
+      ) {
+        const { team } = await params
+      }
+      ```
+
+      | Example | URL | `params` |
+      | --- | --- | --- |
+      | `app/dashboard/[team]/route.js` | `/dashboard/1` | `Promise<{ team: '1' }>` |
+      | `app/shop/[tag]/[item]/route.js` | `/shop/1/2` | `Promise<{ tag: '1', item: '2' }>` |
+      | `app/blog/[...slug]/route.js` | `/blog/1/2` | `Promise<{ slug: ['1', '2'] }>` |
+    </ResponseField>
+  </Expandable>
+</ParamField>
+
+## Route Context Helper
+
+Use `RouteContext` to get strongly typed `params` from a route literal. Globally available after type generation.
+
+```ts filename="app/users/[id]/route.ts"
+import type { NextRequest } from 'next/server'
+
+export async function GET(_req: NextRequest, ctx: RouteContext<'/users/[id]'>) {
+  const { id } = await ctx.params
+  return Response.json({ id })
+}
+```
+
+## Examples
+
+### Cookies
+
+```ts filename="route.ts"
+import { cookies } from 'next/headers'
+
+export async function GET(request: NextRequest) {
+  const cookieStore = await cookies()
+  const a = cookieStore.get('a')
+  const b = cookieStore.set('b', '1')
+  const c = cookieStore.delete('c')
+}
+```
+
+### Headers
+
+```ts filename="route.ts"
+import { headers } from 'next/headers'
+import type { NextRequest } from 'next/server'
+
+export async function GET(request: NextRequest) {
+  const headersList = await headers()
+  const referer = headersList.get('referer')
+}
+```
+
+### Redirects
+
+```ts filename="app/api/route.ts"
+import { redirect } from 'next/navigation'
+
+export async function GET(request: Request) {
+  redirect('https://nextjs.org/')
+}
+```
+
+### Dynamic route segments
+
+```ts filename="app/items/[slug]/route.ts"
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ slug: string }> }
+) {
+  const { slug } = await params
+}
+```
+
+### URL query parameters
+
+```ts filename="app/api/search/route.ts"
+import { type NextRequest } from 'next/server'
+
+export function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams
+  const query = searchParams.get('query')
+  // query is "hello" for /api/search?query=hello
+}
+```
+
+### Streaming
+
+```ts filename="app/api/route.ts"
+function iteratorToStream(iterator: any) {
+  return new ReadableStream({
+    async pull(controller) {
+      const { value, done } = await iterator.next()
+      if (done) {
+        controller.close()
+      } else {
+        controller.enqueue(value)
+      }
+    },
+  })
+}
+
+const encoder = new TextEncoder()
+
+async function* makeIterator() {
+  yield encoder.encode('<p>One</p>')
+  yield encoder.encode('<p>Two</p>')
+  yield encoder.encode('<p>Three</p>')
+}
+
+export async function GET() {
+  const iterator = makeIterator()
+  const stream = iteratorToStream(iterator)
+  return new Response(stream)
+}
+```
+
+### Request body
+
+```ts filename="app/items/route.ts"
+export async function POST(request: Request) {
+  const res = await request.json()
+  return Response.json({ res })
+}
+```
+
+### CORS
+
+```ts filename="app/api/route.ts"
+export async function GET(request: Request) {
+  return new Response('Hello, Next.js!', {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  })
+}
+```
+
+### Revalidating cached data
+
+```ts filename="app/posts/route.ts"
+export const revalidate = 60
+
+export async function GET() {
+  const data = await fetch('https://api.vercel.app/blog')
+  const posts = await data.json()
+  return Response.json(posts)
+}
+```
+
+### Webhooks
+
+```ts filename="app/api/route.ts"
+export async function POST(request: Request) {
+  try {
+    const text = await request.text()
+    // Process the webhook payload
+  } catch (error) {
+    return new Response(`Webhook error: ${error.message}`, { status: 400 })
+  }
+  return new Response('Success!', { status: 200 })
+}
+```
+
+## Version history
+
+| Version | Changes |
+| --- | --- |
+| `v15.0.0-RC` | `context.params` is now a promise. A codemod is available. |
+| `v15.0.0-RC` | Default caching for `GET` handlers changed from static to dynamic. |
+| `v13.2.0` | Route Handlers introduced. |

@@ -1,0 +1,135 @@
+---
+title: Deploying
+description: Learn how to deploy your Next.js application as a Node.js server, Docker container, static export, or with platform adapters.
+---
+
+Next.js can be deployed as a Node.js server, Docker container, static export, or adapted for specific platforms.
+
+| Deployment option | Feature support |
+|-------------------|-----------------|
+| Node.js server | All features |
+| Docker container | All features |
+| Static export | Limited (no SSR, API routes) |
+| Adapters | Platform-specific |
+
+## Node.js server
+
+Deploy to any provider that supports Node.js. Ensure your `package.json` has the build and start scripts:
+
+```json package.json
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  }
+}
+```
+
+Then run `npm run build` to build and `npm run start` to start the server. Node.js deployments support all Next.js features.
+
+<CardGroup cols={2}>
+  <Card title="Flightcontrol" icon="plane" href="https://github.com/nextjs/deploy-flightcontrol">
+    Deploy template
+  </Card>
+  <Card title="Railway" icon="train" href="https://github.com/nextjs/deploy-railway">
+    Deploy template
+  </Card>
+  <Card title="Replit" icon="code" href="https://github.com/nextjs/deploy-replit">
+    Deploy template
+  </Card>
+</CardGroup>
+
+## Docker
+
+Deploy to any provider that supports Docker containers, including Kubernetes and cloud providers.
+
+```dockerfile Dockerfile
+FROM node:20-alpine AS base
+
+# Install dependencies
+FROM base AS deps
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+
+# Build
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
+
+# Run
+FROM base AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+EXPOSE 3000
+CMD ["node", "server.js"]
+```
+
+<Note>
+Enable `output: 'standalone'` in `next.config.js` to generate a minimal Docker image with only required files.
+</Note>
+
+<CardGroup cols={2}>
+  <Card title="DigitalOcean" href="https://github.com/nextjs/deploy-digitalocean">
+    Deploy template
+  </Card>
+  <Card title="Google Cloud Run" href="https://github.com/nextjs/deploy-google-cloud-run">
+    Deploy template
+  </Card>
+  <Card title="Fly.io" href="https://github.com/nextjs/deploy-fly">
+    Deploy template
+  </Card>
+  <Card title="Render" href="https://github.com/nextjs/deploy-render">
+    Deploy template
+  </Card>
+</CardGroup>
+
+## Static export
+
+Next.js can export your application as static HTML, CSS, and JS files:
+
+```js next.config.js
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: 'export',
+}
+
+module.exports = nextConfig
+```
+
+Run `next build` to generate the static files in the `out/` directory. You can then host them on any static hosting service.
+
+<Warning>
+Static exports don't support server-side features like dynamic API routes, middleware, or ISR.
+</Warning>
+
+<CardGroup cols={2}>
+  <Card title="GitHub Pages" href="https://github.com/nextjs/deploy-github-pages">
+    Deploy template
+  </Card>
+</CardGroup>
+
+## Adapters
+
+Platform adapters allow Next.js to run on different hosting infrastructure:
+
+<CardGroup cols={2}>
+  <Card title="Vercel" href="https://vercel.com">
+    Zero-configuration deployments with edge functions support.
+  </Card>
+  <Card title="Netlify" href="https://netlify.com">
+    Deploy with the Netlify Next.js runtime.
+  </Card>
+  <Card title="Cloudflare" href="https://developers.cloudflare.com/pages/framework-guides/nextjs/">
+    Deploy to Cloudflare Pages.
+  </Card>
+</CardGroup>
+
+## Self-hosting
+
+For detailed configuration of Node.js or Docker deployments including image optimization, environment variables, and caching, see the [Self-Hosting guide](/app/guides/self-hosting).

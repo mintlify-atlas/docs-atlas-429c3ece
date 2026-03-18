@@ -1,0 +1,131 @@
+---
+title: use cache
+description: Learn how to use the use cache directive to cache routes, components, and functions in your Next.js application.
+---
+
+The `use cache` directive marks a route, React component, or function as cacheable. It can be placed at the top of a file to cache all exports, or inline at the top of a function or component to cache its return value.
+
+`use cache` is a Cache Components feature. Enable it by adding `cacheComponents: true` to your `next.config.ts`:
+
+```ts filename="next.config.ts"
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  cacheComponents: true,
+}
+
+export default nextConfig
+```
+
+Then add `use cache` at the file, component, or function level:
+
+```tsx
+// File level
+'use cache'
+
+export default async function Page() {
+  // ...
+}
+
+// Component level
+export async function MyComponent() {
+  'use cache'
+  return <></>
+}
+
+// Function level
+export async function getData() {
+  'use cache'
+  const data = await fetch('/api/data')
+  return data
+}
+```
+
+<Note>When used at file level, all function exports must be async functions.</Note>
+
+## How `use cache` works
+
+### Cache keys
+
+A cache entry's key is generated from its inputs:
+
+1. **Build ID** — unique per build; changing invalidates all cache entries
+2. **Function ID** — a secure hash of the function's location and signature
+3. **Serializable arguments** — props (for components) or function arguments
+4. **HMR refresh hash** (development only) — invalidates cache on hot reload
+
+Variables from outer scopes are automatically captured and bound as arguments, making them part of the cache key:
+
+```tsx filename="lib/data.ts"
+async function Component({ userId }: { userId: string }) {
+  const getData = async (filter: string) => {
+    'use cache'
+    // Cache key includes both userId (from closure) and filter (argument)
+    return fetch(`/api/users/${userId}/data?filter=${filter}`)
+  }
+
+  return getData('active')
+}
+```
+
+### Serialization
+
+Arguments and return values of cached functions must be serializable.
+
+**Arguments** use React Server Components serialization (more restrictive):
+- Primitives: `string`, `number`, `boolean`, `null`, `undefined`
+- Plain objects, arrays, Dates, Maps, Sets, TypedArrays, ArrayBuffers
+- React elements (as pass-through only)
+
+**Return values** use React Client Components serialization (less restrictive):
+- All argument types plus JSX elements
+
+<Note>You can return JSX elements but cannot accept them as arguments unless using pass-through patterns.</Note>
+
+## Cache lifetime
+
+Use the `cacheLife` function inside `use cache` to set cache duration:
+
+```tsx
+import { cacheLife } from 'next/cache'
+
+export async function getData() {
+  'use cache'
+  cacheLife('days')
+  // ...
+}
+```
+
+Predefined profiles: `'seconds'`, `'minutes'`, `'hours'`, `'days'`, `'weeks'`, `'max'`. Custom profiles can be defined in `next.config.ts`.
+
+## Cache tags
+
+Use `cacheTag` to tag cached data for on-demand revalidation:
+
+```tsx
+import { cacheTag } from 'next/cache'
+
+export async function getData() {
+  'use cache'
+  cacheTag('my-tag')
+  // ...
+}
+```
+
+Then revalidate with `revalidateTag('my-tag', 'max')`.
+
+## Variants
+
+### `'use cache: private'`
+
+For data that cannot be shared across users (e.g., per-user personalized content). Uses the default cache handler but prevents cross-user cache sharing.
+
+### `'use cache: remote'`
+
+Allows platforms to provide a dedicated remote cache handler. Requires a network roundtrip and typically incurs platform fees.
+
+## Good to know
+
+- To use cookies or headers, read them outside cached scopes and pass values as arguments.
+- `use cache` cannot be used inside `use server` functions.
+- `use cache` is not compatible with Request-time APIs like `cookies()` or `headers()` inside the cached scope.

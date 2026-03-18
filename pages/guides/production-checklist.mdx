@@ -1,0 +1,136 @@
+---
+title: Production checklist
+description: Recommendations to ensure the best performance and user experience before taking your Next.js Pages Router application to production.
+---
+
+Before taking your Next.js application to production, there are optimizations and patterns you should implement for the best user experience, performance, and security.
+
+## Automatic optimizations
+
+These Next.js optimizations are enabled by default and require no configuration:
+
+- **Code-splitting** — Next.js automatically code-splits your application by pages, loading only the code needed for the current page
+- **Prefetching** — When a `<Link>` enters the viewport, Next.js prefetches the route in the background for near-instant navigation
+- **Automatic Static Optimization** — Pages without blocking data requirements are automatically pre-rendered as static HTML
+
+## During development
+
+### Routing and rendering
+
+- Use the [`<Link>` component](/pages/api-reference/components/link) for client-side navigation and prefetching
+- Handle [custom 500](/pages/building/configuring#handling-server-errors) and [404](/pages/building/configuring#handling-server-errors) error pages
+
+### Data fetching and caching
+
+- Use [API Routes](/pages/building/routing#api-routes) to access backend resources without exposing secrets to the client
+- Verify whether your data requests are being cached, and opt into caching where appropriate using `getStaticProps`
+- Use [Incremental Static Regeneration](/pages/guides/incremental-static-regeneration) to update static pages after building without rebuilding your entire site
+- Store static assets in the `public` directory for automatic caching
+
+### UI and accessibility
+
+- Use the [`<Font>` component](/pages/api-reference/components/font) to automatically host font files, remove external network requests, and reduce layout shift
+- Use the [`<Image>` component](/pages/api-reference/components/image) to automatically optimize images, prevent layout shift, and serve in modern formats
+- Use the [`<Script>` component](/pages/api-reference/components/script) to automatically defer third-party scripts and prevent them from blocking the main thread
+- Use the built-in `eslint-plugin-jsx-a11y` plugin to catch accessibility issues early
+
+### Security
+
+- Use [environment variables](/pages/guides/environment-variables) to avoid exposing secrets
+- Set `Content-Security-Policy` headers
+- Validate and sanitize all user input
+- Use HTTPS in production
+
+## Before going to production
+
+### Performance
+
+- Run `next build` and check the build output for any large pages or bundles
+- Enable Gzip/Brotli compression via your hosting environment or reverse proxy
+- Set appropriate `Cache-Control` headers for static assets
+- Use the [Web Vitals](https://web.dev/vitals/) metrics to measure real-world performance
+
+### Monitoring and observability
+
+- Set up error monitoring (e.g., Sentry, Bugsnag)
+- Add logging to API Routes and server-side functions
+- Set up uptime monitoring
+
+### Security review
+
+- Review all API Routes for authentication and authorization checks
+- Ensure no sensitive data is exposed in `getStaticProps` or `getServerSideProps` props (they're sent to the client in the HTML)
+- Rotate secrets and use separate secrets for different environments
+
+### Testing
+
+- Run your test suite before deploying
+- Test on multiple browsers and devices
+- Test with slow network conditions
+
+### Deployment
+
+- Configure proper environment variables for production
+- Test the production build locally with `next build && next start`
+- Review your [deployment configuration](/pages/getting-started/deploying)
+
+## Performance optimization tips
+
+### Bundle analysis
+
+Analyze your bundle size with `@next/bundle-analyzer`:
+
+<CodeGroup>
+```bash npm
+npm install @next/bundle-analyzer
+```
+```bash yarn
+yarn add @next/bundle-analyzer
+```
+</CodeGroup>
+
+```js filename="next.config.js"
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+})
+
+module.exports = withBundleAnalyzer({})
+```
+
+```bash
+ANALYZE=true npm run build
+```
+
+### Dynamic imports
+
+Use dynamic imports to code-split large components:
+
+```jsx
+import dynamic from 'next/dynamic'
+
+const HeavyComponent = dynamic(() => import('../components/heavy'), {
+  loading: () => <p>Loading...</p>,
+})
+```
+
+### Image optimization
+
+Always use the `next/image` component instead of `<img>` tags to get automatic optimization, lazy loading, and layout shift prevention.
+
+### Font optimization
+
+Use `next/font` to load fonts without external network requests:
+
+```js filename="pages/_app.js"
+import { Inter } from 'next/font/google'
+
+const inter = Inter({ subsets: ['latin'] })
+
+export default function App({ Component, pageProps }) {
+  return (
+    <main className={inter.className}>
+      <Component {...pageProps} />
+    </main>
+  )
+}
+```

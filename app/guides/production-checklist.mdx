@@ -1,0 +1,142 @@
+---
+title: Production checklist
+description: Recommendations to ensure the best performance and user experience before taking your Next.js application to production.
+---
+
+Before taking your Next.js application to production, there are some optimizations and patterns you should consider implementing for the best user experience, performance, and security.
+
+This page provides best practices that you can use as a reference when building your application and before going to production, as well as the automatic Next.js optimizations you should be aware of.
+
+## Automatic optimizations
+
+These Next.js optimizations are enabled by default and require no configuration:
+
+- **[Server Components](/app/getting-started/server-and-client-components):** Next.js uses Server Components by default. Server Components run on the server, and don't require JavaScript to render on the client. As such, they have no impact on the size of your client-side JavaScript bundles. You can then use Client Components as needed for interactivity.
+- **[Code-splitting](/app/getting-started/linking-and-navigating#how-navigation-works):** Server Components enable automatic code-splitting by route segments. You may also consider lazy loading Client Components and third-party libraries, where appropriate.
+- **[Prefetching](/app/getting-started/linking-and-navigating#prefetching):** When a link to a new route enters the user's viewport, Next.js prefetches the route in background. This makes navigation to new routes almost instant.
+- **Prerendering:** Next.js prerenders Server and Client Components on the server at build time and caches the rendered result to improve your application's performance.
+- **[Caching](/app/getting-started/caching):** Next.js caches data requests, the rendered result of Server and Client Components, static assets, and more, to reduce the number of network requests to your server, database, and backend services.
+
+## During development
+
+While building your application, we recommend using the following features to ensure the best performance and user experience:
+
+### Routing and rendering
+
+<AccordionGroup>
+  <Accordion title="Layouts">
+    Use [layouts](/app/api-reference/file-conventions/layout) to share UI across pages and enable partial rendering on navigation.
+  </Accordion>
+  <Accordion title="Link component">
+    Use the `<Link>` component for client-side navigation and prefetching.
+  </Accordion>
+  <Accordion title="Error handling">
+    Gracefully handle catch-all errors and 404 errors in production by creating custom error pages.
+  </Accordion>
+  <Accordion title="Client and Server Components">
+    Follow the recommended composition patterns for Server and Client Components, and check the placement of your `"use client"` boundaries to avoid unnecessarily increasing your client-side JavaScript bundle.
+  </Accordion>
+  <Accordion title="Request-time APIs">
+    Be aware that Request-time APIs like `cookies` and the `searchParams` prop will opt the entire route into Dynamic Rendering. Ensure Request-time API usage is intentional and wrap them in `<Suspense>` boundaries where appropriate.
+  </Accordion>
+</AccordionGroup>
+
+### Data fetching and caching
+
+<AccordionGroup>
+  <Accordion title="Server Components">
+    Leverage the benefits of fetching data on the server using Server Components.
+  </Accordion>
+  <Accordion title="Route Handlers">
+    Use Route Handlers to access your backend resources from Client Components. But do not call Route Handlers from Server Components to avoid an additional server request.
+  </Accordion>
+  <Accordion title="Streaming">
+    Use Loading UI and React Suspense to progressively send UI from the server to the client, and prevent the whole route from blocking while data is being fetched.
+  </Accordion>
+  <Accordion title="Parallel data fetching">
+    Reduce network waterfalls by fetching data in parallel, where appropriate.
+  </Accordion>
+  <Accordion title="Data caching">
+    Verify whether your data requests are being cached or not, and opt into caching, where appropriate. Ensure requests that don't use `fetch` are cached.
+  </Accordion>
+  <Accordion title="Static images">
+    Use the `public` directory to automatically cache your application's static assets, e.g. images.
+  </Accordion>
+</AccordionGroup>
+
+### UI and accessibility
+
+<AccordionGroup>
+  <Accordion title="Forms and validation">
+    Use Server Actions to handle form submissions, server-side validation, and handle errors.
+  </Accordion>
+  <Accordion title="Font Module">
+    Optimize fonts by using the Font Module, which automatically hosts your font files with other static assets, removes external network requests, and reduces layout shift.
+  </Accordion>
+  <Accordion title="Image Component">
+    Optimize images by using the Image Component, which automatically optimizes images, prevents layout shift, and serves them in modern formats like WebP.
+  </Accordion>
+  <Accordion title="Script Component">
+    Optimize third-party scripts by using the Script Component, which automatically defers scripts and prevents them from blocking the main thread.
+  </Accordion>
+  <Accordion title="ESLint">
+    Use the built-in `eslint-plugin-jsx-a11y` plugin to catch accessibility issues early.
+  </Accordion>
+</AccordionGroup>
+
+### Security
+
+<AccordionGroup>
+  <Accordion title="Tainting">
+    Prevent sensitive data from being exposed to the client by tainting data objects and/or specific values.
+  </Accordion>
+  <Accordion title="Server Actions">
+    Verify authentication and authorization inside each action. Do not rely on Proxy or layout or page level checks alone. Move database access to a `server-only` Data Access Layer and consider rate limiting for expensive operations.
+  </Accordion>
+  <Accordion title="Environment variables">
+    Ensure your `.env.*` files are added to `.gitignore` and only public variables are prefixed with `NEXT_PUBLIC_`.
+  </Accordion>
+  <Accordion title="Content Security Policy">
+    Consider adding a Content Security Policy to protect your application against various security threats such as cross-site scripting, clickjacking, and other code injection attacks.
+  </Accordion>
+</AccordionGroup>
+
+### Metadata and SEO
+
+- Use the **[Metadata API](/app/api-reference/functions/generate-metadata)** to improve your application's Search Engine Optimization (SEO) by adding page titles, descriptions, and more.
+- Create **Open Graph (OG) images** using `opengraph-image.tsx` files to prepare your application for social sharing.
+- Generate **Sitemaps** using `sitemap.ts` and **Robots** using `robots.ts` files to help Search Engines crawl and index your pages.
+
+### Type safety
+
+Use **TypeScript** and the **[TS Plugin](/app/api-reference/config/typescript)** for better type-safety, and to help you catch errors early.
+
+## Before going to production
+
+Before going to production, you can run `next build` to build your application locally and catch any build errors, then run `next start` to measure the performance of your application in a production-like environment.
+
+### Core Web Vitals
+
+- Run **[Lighthouse](https://developers.google.com/web/tools/lighthouse)** in incognito to gain a better understanding of how your users will experience your site, and to identify areas for improvement.
+- Use the **`useReportWebVitals` hook** to send [Core Web Vitals](https://web.dev/articles/vitals) data to analytics tools.
+
+### Analyzing bundles
+
+Use the `@next/bundle-analyzer` plugin to analyze the size of your JavaScript bundles and identify large modules and dependencies that might be impacting your application's performance.
+
+Additionally, the following tools can help you understand the impact of adding new dependencies to your application:
+
+<CardGroup cols={2}>
+  <Card title="Import Cost" href="https://marketplace.visualstudio.com/items?itemName=wix.vscode-import-cost">
+    VS Code extension that shows the cost of imported packages.
+  </Card>
+  <Card title="Package Phobia" href="https://packagephobia.com/">
+    Find the cost of adding a new dev dependency to your project.
+  </Card>
+  <Card title="Bundle Phobia" href="https://bundlephobia.com/">
+    Find the cost of adding an npm package to your bundle.
+  </Card>
+  <Card title="bundlejs" href="https://bundlejs.com/">
+    Online tool to bundle and analyze your code.
+  </Card>
+</CardGroup>

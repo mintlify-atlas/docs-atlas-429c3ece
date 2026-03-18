@@ -1,0 +1,118 @@
+---
+title: redirect
+description: API reference for the redirect function, which redirects users to another URL from Server and Client Components, Route Handlers, and Server Functions.
+---
+
+The `redirect` function redirects users to another URL. It can be used in [Server and Client Components](/app/getting-started/server-and-client-components), [Route Handlers](/app/api-reference/file-conventions/route), and [Server Functions](/app/getting-started/mutating-data).
+
+## Parameters
+
+```js
+redirect(path, type)
+```
+
+<ParamField path="path" type="string" required>
+  The URL to redirect to. Can be a relative or absolute path.
+</ParamField>
+
+<ParamField path="type" type="'replace' | 'push'">
+  The type of redirect. Defaults to `'replace'` everywhere except Server Actions where it defaults to `'push'`.
+
+  ```ts
+  import { redirect, RedirectType } from 'next/navigation'
+
+  redirect('/redirect-to', RedirectType.replace)
+  redirect('/redirect-to', RedirectType.push)
+  ```
+
+  The `type` parameter has no effect in Server Components.
+</ParamField>
+
+## Returns
+
+`redirect` does not return a value.
+
+## Behavior
+
+- In Server Actions and Route Handlers, call `redirect` **outside** any `try/catch` block.
+- `redirect` throws an error internally, so it should be outside `try` blocks.
+- `redirect` can be called in Client Components during rendering, but not in event handlers. Use `useRouter` in event handlers.
+- `redirect` accepts absolute URLs and can redirect to external links.
+- For pre-render-time redirects, use `next.config.js` or Proxy.
+- In a streaming context, inserts a meta tag to emit the redirect on the client.
+- In a server action, serves a 303 HTTP redirect. Otherwise, serves a 307.
+
+## Examples
+
+### Server Component
+
+```tsx filename="app/team/[id]/page.tsx"
+import { redirect } from 'next/navigation'
+
+async function fetchTeam(id: string) {
+  const res = await fetch('https://...')
+  if (!res.ok) return undefined
+  return res.json()
+}
+
+export default async function Profile({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const team = await fetchTeam(id)
+
+  if (!team) {
+    redirect('/login')
+  }
+
+  // ...
+}
+```
+
+<Note>`redirect` does not require `return redirect()` as it uses the TypeScript `never` type.</Note>
+
+### Client Component
+
+`redirect` can be used directly in a Client Component during rendering:
+
+```tsx filename="components/client-redirect.tsx"
+'use client'
+
+import { redirect, usePathname } from 'next/navigation'
+
+export function ClientRedirect() {
+  const pathname = usePathname()
+
+  if (pathname.startsWith('/admin') && !pathname.includes('/login')) {
+    redirect('/admin/login')
+  }
+
+  return <div>Login Page</div>
+}
+```
+
+### Server Action
+
+```tsx filename="app/actions.ts"
+'use server'
+
+import { redirect } from 'next/navigation'
+
+export async function navigate(data: FormData) {
+  redirect(`/posts/${data.get('id')}`)
+}
+```
+
+## FAQ
+
+### Why does redirect use 307 and 308?
+
+`redirect()` uses `307` for temporary and `308` for permanent redirects. Unlike the older `302` and `301` codes, these preserve the HTTP request method. For example, a `POST` request to `/users` that redirects to `/people` with `307` will remain a `POST` request to `/people`, which is the correct behavior for creating a resource.
+
+## Version history
+
+| Version | Changes |
+| --- | --- |
+| `v13.0.0` | `redirect` introduced. |

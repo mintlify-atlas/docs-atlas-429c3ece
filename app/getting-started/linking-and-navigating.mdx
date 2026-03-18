@@ -1,0 +1,147 @@
+---
+title: Linking and Navigating
+description: Learn how prefetching, streaming, and client-side transitions work in Next.js and how to optimize navigation.
+---
+
+In Next.js, routes are rendered on the server by default. Next.js includes built-in prefetching, streaming, and client-side transitions to keep navigation fast and responsive.
+
+## How navigation works
+
+### Server rendering
+
+Layouts and pages are React Server Components by default. On every navigation, the Server Component Payload is generated on the server before being sent to the client.
+
+There are two types of server rendering:
+
+- **Prerendering** — happens at build time or revalidation; the result is cached
+- **Dynamic rendering** — happens at request time in response to a client request
+
+### Prefetching
+
+Prefetching loads a route in the background before the user navigates to it. Next.js automatically prefetches routes linked with the `<Link>` component when they enter the viewport:
+
+```tsx app/layout.tsx
+import Link from 'next/link'
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <html>
+      <body>
+        <nav>
+          {/* Prefetched when entering viewport */}
+          <Link href="/blog">Blog</Link>
+          {/* No prefetching */}
+          <a href="/contact">Contact</a>
+        </nav>
+        {children}
+      </body>
+    </html>
+  )
+}
+```
+
+### Streaming
+
+Streaming allows the server to progressively send parts of the UI to the client. A `loading.tsx` file wraps a page in a Suspense boundary, showing a skeleton while data loads:
+
+```
+app/
+  blog/
+    loading.tsx    ← Shows immediately
+    page.tsx       ← Streams in when ready
+```
+
+### Client-side transitions
+
+On navigation, Next.js performs a client-side transition using cached prefetched data, avoiding a full page reload.
+
+## The `<Link>` component
+
+`<Link>` is the primary way to navigate between routes:
+
+```tsx
+import Link from 'next/link'
+
+// Static link
+<Link href="/blog">Blog</Link>
+
+// Dynamic link
+<Link href={`/blog/${post.slug}`}>{post.title}</Link>
+
+// Disable prefetching
+<Link href="/blog" prefetch={false}>Blog</Link>
+```
+
+## Programmatic navigation
+
+Use the `useRouter` hook for programmatic navigation in Client Components:
+
+```tsx
+'use client'
+
+import { useRouter } from 'next/navigation'
+
+export default function Page() {
+  const router = useRouter()
+
+  return (
+    <button onClick={() => router.push('/dashboard')}>
+      Go to Dashboard
+    </button>
+  )
+}
+```
+
+## Optimizing dynamic routes
+
+Dynamic routes (e.g., `/blog/[slug]`) require data before they can render. Add a `loading.tsx` to show a skeleton immediately while the page streams in:
+
+```tsx app/blog/[slug]/loading.tsx
+export default function Loading() {
+  return (
+    <div>
+      <div className="h-8 w-64 bg-gray-200 animate-pulse rounded" />
+      <div className="mt-4 h-4 w-full bg-gray-200 animate-pulse rounded" />
+    </div>
+  )
+}
+```
+
+## Active link styling
+
+Use `usePathname` to add active styles:
+
+```tsx
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+
+export default function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  const pathname = usePathname()
+  const isActive = pathname === href
+
+  return (
+    <Link
+      href={href}
+      className={isActive ? 'font-bold text-blue-600' : 'text-gray-600'}
+    >
+      {children}
+    </Link>
+  )
+}
+```
+
+## Scroll behavior
+
+By default, Next.js scrolls to the top of the page on navigation. Disable this with `scroll={false}`:
+
+```tsx
+<Link href="/blog" scroll={false}>Blog</Link>
+```
+
+Or with `router.push`:
+
+```tsx
+router.push('/blog', { scroll: false })
+```

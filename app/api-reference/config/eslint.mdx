@@ -1,0 +1,133 @@
+---
+title: ESLint
+description: Next.js provides an ESLint configuration package that catches common issues, including Next.js-specific rules, React rules, and Core Web Vitals rules.
+---
+
+Next.js provides [`eslint-config-next`](https://www.npmjs.com/package/eslint-config-next), an ESLint configuration package that catches common issues in your application.
+
+The package provides two main configurations:
+
+- **`eslint-config-next`**: Base configuration with Next.js, React, and React Hooks rules.
+- **`eslint-config-next/core-web-vitals`**: Includes the base config plus upgrades rules that impact [Core Web Vitals](https://web.dev/vitals/) from warnings to errors. Recommended for most projects.
+
+For TypeScript projects:
+
+- **`eslint-config-next/typescript`**: Adds TypeScript-specific rules from [`typescript-eslint`](https://typescript-eslint.io/).
+
+## Setup
+
+<Steps>
+  <Step title="Install ESLint and the Next.js config">
+    <Tabs>
+      <Tab title="pnpm">
+        ```bash
+        pnpm add -D eslint eslint-config-next
+        ```
+      </Tab>
+      <Tab title="npm">
+        ```bash
+        npm i -D eslint eslint-config-next
+        ```
+      </Tab>
+      <Tab title="yarn">
+        ```bash
+        yarn add --dev eslint eslint-config-next
+        ```
+      </Tab>
+    </Tabs>
+  </Step>
+  <Step title="Create eslint.config.mjs">
+    ```js filename="eslint.config.mjs"
+    import { defineConfig, globalIgnores } from 'eslint/config'
+    import nextVitals from 'eslint-config-next/core-web-vitals'
+
+    const eslintConfig = defineConfig([
+      ...nextVitals,
+      globalIgnores([
+        '.next/**',
+        'out/**',
+        'build/**',
+        'next-env.d.ts',
+      ]),
+    ])
+
+    export default eslintConfig
+    ```
+  </Step>
+  <Step title="Run ESLint">
+    ```bash
+    npx eslint .
+    ```
+  </Step>
+</Steps>
+
+## Included rules
+
+The `eslint-config-next` package includes the `recommended` rule-sets from:
+
+- [`eslint-plugin-react`](https://www.npmjs.com/package/eslint-plugin-react)
+- [`eslint-plugin-react-hooks`](https://www.npmjs.com/package/eslint-plugin-react-hooks)
+- [`@next/eslint-plugin-next`](https://www.npmjs.com/package/@next/eslint-plugin-next)
+
+### `@next/eslint-plugin-next` rules
+
+Key rules included:
+
+| Rule | Description |
+| --- | --- |
+| `@next/next/google-font-display` | Enforce `font-display` behavior with Google Fonts. |
+| `@next/next/google-font-preconnect` | Ensure `preconnect` is used with Google Fonts. |
+| `@next/next/inline-script-id` | Enforce `id` attribute on `next/script` with inline content. |
+| `@next/next/next-script-for-ga` | Prefer `next/script` for Google Analytics inline scripts. |
+| `@next/next/no-async-client-component` | Prevent Client Components from being async functions. |
+| `@next/next/no-css-tags` | Prevent manual `<link>` stylesheet tags. Use `next/font` instead. |
+| `@next/next/no-document-import-in-page` | Prevent importing `next/document` outside `_document.js`. |
+| `@next/next/no-duplicate-head` | Prevent duplicate use of `<Head>` in `_document.js`. |
+| `@next/next/no-head-import-in-document` | Prevent importing `next/head` in `_document.js`. |
+| `@next/next/no-html-link-for-pages` | Prevent `<a>` for navigating to Next.js pages. |
+| `@next/next/no-img-element` | Prevent `<img>` element. Use `next/image` instead. |
+| `@next/next/no-script-component-in-head` | Prevent `next/script` in `next/head`. |
+| `@next/next/no-sync-scripts` | Prevent synchronous third-party scripts. |
+| `@next/next/no-title-in-document-head` | Prevent `<title>` with `Head` from `next/document`. |
+| `@next/next/no-typos` | Prevent common Next.js data fetching function typos. |
+| `@next/next/no-unwanted-polyfillio` | Prevent duplicate polyfills from Polyfill.io. |
+
+## Disabling rules
+
+```js filename="eslint.config.mjs"
+import { defineConfig } from 'eslint/config'
+import nextVitals from 'eslint-config-next/core-web-vitals'
+
+export default defineConfig([
+  ...nextVitals,
+  {
+    rules: {
+      '@next/next/no-img-element': 'warn',
+    },
+  },
+])
+```
+
+## Running during build
+
+ESLint runs as part of `next build`. To disable:
+
+```js filename="next.config.js"
+module.exports = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+}
+```
+
+<Warning>Linting will be removed from `next build` in Next.js 16. Set up a separate lint step in your CI pipeline.</Warning>
+
+## Running on specific directories
+
+```js filename="next.config.js"
+module.exports = {
+  eslint: {
+    dirs: ['pages', 'utils'],
+  },
+}
+```

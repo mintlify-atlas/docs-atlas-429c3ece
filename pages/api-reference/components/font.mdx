@@ -1,0 +1,168 @@
+---
+title: Font module
+description: API reference for the next/font module for optimizing font loading in Next.js.
+---
+
+The `next/font` module automatically optimizes your fonts and removes external network requests for improved privacy and performance.
+
+`next/font` includes built-in automatic self-hosting for any font file. This means you can optimally load web fonts with zero layout shift.
+
+## `next/font/google`
+
+Automatically self-hosts any Google Font.
+
+```jsx filename="pages/_app.js"
+import { Inter } from 'next/font/google'
+
+const inter = Inter({ subsets: ['latin'] })
+
+export default function MyApp({ Component, pageProps }) {
+  return (
+    <main className={inter.className}>
+      <Component {...pageProps} />
+    </main>
+  )
+}
+```
+
+### Options
+
+<ParamField path="subsets" type="string[]">
+  The font subsets to be preloaded (e.g., `['latin']`, `['latin', 'latin-ext']`).
+</ParamField>
+
+<ParamField path="weight" type="string | string[]">
+  The font weight(s) to load. Can be a specific weight (`'400'`) or an array (`['400', '700']`).
+</ParamField>
+
+<ParamField path="style" type="string | string[]">
+  The font style(s) to load. Defaults to `'normal'`.
+</ParamField>
+
+<ParamField path="display" type="string">
+  The font-display property. Defaults to `'swap'`.
+</ParamField>
+
+<ParamField path="preload" type="boolean">
+  Whether to preload the font. Defaults to `true`.
+</ParamField>
+
+<ParamField path="fallback" type="string[]">
+  Fallback font(s) to use if the font cannot be loaded.
+</ParamField>
+
+<ParamField path="adjustFontFallback" type="boolean">
+  Whether to use an automatic fallback font that reduces Cumulative Layout Shift. Defaults to `true`.
+</ParamField>
+
+<ParamField path="variable" type="string">
+  A CSS variable name to use when applying the font with CSS variable method.
+</ParamField>
+
+## `next/font/local`
+
+Load local font files:
+
+```jsx filename="pages/_app.js"
+import localFont from 'next/font/local'
+
+const myFont = localFont({
+  src: './my-font.woff2',
+  display: 'swap',
+})
+
+export default function MyApp({ Component, pageProps }) {
+  return (
+    <main className={myFont.className}>
+      <Component {...pageProps} />
+    </main>
+  )
+}
+```
+
+### Options
+
+<ParamField path="src" type="string | object[]" required>
+  The font file path or an array of font file objects:
+
+  ```js
+  // Single file
+  src: './fonts/my-font.woff2'
+
+  // Multiple files with different weights/styles
+  src: [
+    { path: './fonts/font-regular.woff2', weight: '400' },
+    { path: './fonts/font-bold.woff2', weight: '700' },
+  ]
+  ```
+</ParamField>
+
+<ParamField path="weight" type="string">
+  The CSS `font-weight` value.
+</ParamField>
+
+<ParamField path="style" type="string">
+  The CSS `font-style` value. Defaults to `'normal'`.
+</ParamField>
+
+<ParamField path="display" type="string">
+  The CSS `font-display` value. Defaults to `'swap'`.
+</ParamField>
+
+<ParamField path="variable" type="string">
+  A CSS variable name for using the font with the CSS variable method.
+</ParamField>
+
+<ParamField path="fallback" type="string[]">
+  Fallback fonts to use if the font cannot be loaded.
+</ParamField>
+
+## Applied values
+
+The font function returns an object with the following properties:
+
+<ResponseField name="className" type="string">
+  CSS class name to apply the font via a className prop.
+</ResponseField>
+
+<ResponseField name="style" type="object">
+  CSS style object to apply the font via a style prop.
+</ResponseField>
+
+<ResponseField name="variable" type="string">
+  The CSS variable name (if the `variable` option was defined).
+</ResponseField>
+
+## Usage with CSS variables
+
+```jsx filename="pages/_app.js"
+import { Inter, Roboto_Mono } from 'next/font/google'
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+})
+
+const roboto_mono = Roboto_Mono({
+  subsets: ['latin'],
+  variable: '--font-roboto-mono',
+})
+
+export default function MyApp({ Component, pageProps }) {
+  return (
+    <main className={`${inter.variable} ${roboto_mono.variable}`}>
+      <Component {...pageProps} />
+    </main>
+  )
+}
+```
+
+```css filename="styles/global.css"
+html {
+  font-family: var(--font-inter);
+}
+
+h1 {
+  font-family: var(--font-roboto-mono);
+}
+```

@@ -1,0 +1,165 @@
+---
+title: "<Script>"
+description: Optimize third-party scripts in your Next.js application using the built-in next/script component.
+---
+
+The `next/script` component lets you load third-party scripts efficiently by controlling when and how they load.
+
+## Usage
+
+```jsx
+import Script from 'next/script'
+
+export default function Page() {
+  return (
+    <>
+      <Script src="https://example.com/script.js" />
+    </>
+  )
+}
+```
+
+## Props
+
+<ParamField path="src" type="string" required>
+  A path string or URL specifying the URL of an external script.
+</ParamField>
+
+<ParamField path="strategy" type="'beforeInteractive' | 'afterInteractive' | 'lazyOnload' | 'worker'">
+  The loading strategy for the script. Defaults to `'afterInteractive'`.
+
+  | Strategy | Description |
+  |----------|-------------|
+  | `beforeInteractive` | Loads before any Next.js code and before page hydration. Use for critical scripts that must load first. |
+  | `afterInteractive` | Loads immediately after the page becomes interactive (default). Use for tag managers and analytics. |
+  | `lazyOnload` | Loads during browser idle time. Use for low-priority background scripts. |
+  | `worker` | Loads in a web worker (experimental). Use for any script that does not need DOM access. |
+</ParamField>
+
+<ParamField path="onLoad" type="function">
+  Callback function that is called after the script has finished loading.
+
+  ```jsx
+  <Script
+    src="https://example.com/script.js"
+    onLoad={() => {
+      console.log('Script loaded')
+    }}
+  />
+  ```
+</ParamField>
+
+<ParamField path="onReady" type="function">
+  Callback function that is called after the script has finished loading and every time the component is mounted.
+</ParamField>
+
+<ParamField path="onError" type="function">
+  Callback function that is called when the script fails to load.
+</ParamField>
+
+<ParamField path="id" type="string">
+  A unique identifier for the script when used with inline scripts.
+</ParamField>
+
+## Inline scripts
+
+For inline scripts, set the `id` prop so Next.js can track and optimize the script:
+
+```jsx
+<Script id="show-banner">
+  {`document.getElementById('banner').classList.remove('hidden')`}
+</Script>
+```
+
+Or using `dangerouslySetInnerHTML`:
+
+```jsx
+<Script
+  id="show-banner"
+  dangerouslySetInnerHTML={{
+    __html: `document.getElementById('banner').classList.remove('hidden')`,
+  }}
+/>
+```
+
+## Examples
+
+### Loading a script in a specific page
+
+```jsx filename="pages/index.js"
+import Script from 'next/script'
+
+export default function Home() {
+  return (
+    <>
+      <Script
+        src="https://connect.facebook.net/en_US/sdk.js"
+        strategy="lazyOnload"
+      />
+    </>
+  )
+}
+```
+
+### Loading a script in all pages
+
+Add the script to `pages/_app.js` to load it on every page:
+
+```jsx filename="pages/_app.js"
+import Script from 'next/script'
+
+export default function MyApp({ Component, pageProps }) {
+  return (
+    <>
+      <Script
+        src="https://example.com/script.js"
+        strategy="afterInteractive"
+      />
+      <Component {...pageProps} />
+    </>
+  )
+}
+```
+
+### Loading Google Tag Manager
+
+```jsx filename="pages/_app.js"
+import Script from 'next/script'
+
+export default function MyApp({ Component, pageProps }) {
+  return (
+    <>
+      <Script
+        id="gtag-init"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{
+          __html: `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'GTM-XXXXXXX');
+          `,
+        }}
+      />
+      <Component {...pageProps} />
+    </>
+  )
+}
+```
+
+### Using a worker strategy
+
+<Note>
+  The `worker` strategy is experimental. Enable it in `next.config.js`:
+  ```js
+  module.exports = {
+    experimental: {
+      nextScriptWorkers: true,
+    },
+  }
+  ```
+</Note>
+
+```jsx
+<Script src="heavy-script.js" strategy="worker" />
+```

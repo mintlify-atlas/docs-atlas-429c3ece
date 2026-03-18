@@ -1,0 +1,148 @@
+---
+title: Deploying
+description: Learn how to deploy your Next.js Pages Router application to production.
+---
+
+## Managed deployment with Vercel
+
+The easiest way to deploy your Next.js application is to use the [Vercel Platform](https://vercel.com), built by the creators of Next.js.
+
+<Steps>
+  <Step title="Push your code to a Git repository">
+    Push your application to GitHub, GitLab, or Bitbucket.
+  </Step>
+  <Step title="Import your project to Vercel">
+    Visit [vercel.com/new](https://vercel.com/new) and import your repository. Vercel will detect that you're using Next.js and configure the build settings automatically.
+  </Step>
+  <Step title="Deploy">
+    Your application will be deployed to a URL like `your-app.vercel.app`. Every push to the main branch triggers a production deployment. Pull requests get preview deployments.
+  </Step>
+</Steps>
+
+## Self-hosting
+
+You can self-host Next.js on any infrastructure that supports Node.js.
+
+### Node.js server
+
+<Steps>
+  <Step title="Build your application">
+    ```bash
+    npm run build
+    ```
+  </Step>
+  <Step title="Start the production server">
+    ```bash
+    npm run start
+    ```
+
+    By default, `next start` starts the server on port 3000. Use the `-p` flag to change the port:
+
+    ```bash
+    next start -p 4000
+    ```
+  </Step>
+</Steps>
+
+### Docker
+
+Next.js can be deployed using Docker containers.
+
+<Steps>
+  <Step title="Create a Dockerfile">
+    ```dockerfile filename="Dockerfile"
+    FROM node:18-alpine AS base
+
+    FROM base AS deps
+    RUN apk add --no-cache libc6-compat
+    WORKDIR /app
+    COPY package.json yarn.lock* package-lock.json* pnpm-lock.yaml* ./
+    RUN \\
+      if [ -f yarn.lock ]; then yarn --frozen-lockfile; \\
+      elif [ -f package-lock.json ]; then npm ci; \\
+      elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm i --frozen-lockfile; \\
+      else echo "Lockfile not found." && exit 1; \\
+      fi
+
+    FROM base AS builder
+    WORKDIR /app
+    COPY --from=deps /app/node_modules ./node_modules
+    COPY . .
+    RUN \\
+      if [ -f yarn.lock ]; then yarn run build; \\
+      elif [ -f package-lock.json ]; then npm run build; \\
+      elif [ -f pnpm-lock.yaml ]; then corepack enable pnpm && pnpm run build; \\
+      else echo "Lockfile not found." && exit 1; \\
+      fi
+
+    FROM base AS runner
+    WORKDIR /app
+    ENV NODE_ENV=production
+    RUN addgroup --system --gid 1001 nodejs
+    RUN adduser --system --uid 1001 nextjs
+    COPY --from=builder /app/public ./public
+    COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+    COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+    USER nextjs
+    EXPOSE 3000
+    ENV PORT=3000
+    ENV HOSTNAME="0.0.0.0"
+    CMD ["node", "server.js"]
+    ```
+  </Step>
+  <Step title="Enable standalone output in next.config.js">
+    ```js filename="next.config.js"
+    /** @type {import('next').NextConfig} */
+    const nextConfig = {
+      output: 'standalone',
+    }
+
+    module.exports = nextConfig
+    ```
+  </Step>
+  <Step title="Build and run the Docker image">
+    ```bash
+    docker build -t my-next-app .
+    docker run -p 3000:3000 my-next-app
+    ```
+  </Step>
+</Steps>
+
+### Static exports
+
+For applications that don't require a Node.js server, you can export a fully static site:
+
+```js filename="next.config.js"
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: 'export',
+}
+
+module.exports = nextConfig
+```
+
+Run `next build` to generate an `out` folder containing static HTML, CSS, and JS. This can be deployed to any static hosting service.
+
+<Warning>
+  Static exports don't support features that require a server, such as `getServerSideProps`, API routes, or Image Optimization.
+</Warning>
+
+## Environment variables
+
+Environment variables set at build time are baked into the output. To set runtime environment variables when deploying to a Node.js server, configure them in your hosting environment.
+
+See [Environment Variables](/pages/guides/environment-variables) for details on how to configure and use environment variables.
+
+## Build output
+
+Running `next build` creates an optimized production build in the `.next` directory:
+
+| Directory | Contents |
+|-----------|----------|
+| `.next/static` | Static assets and pre-rendered pages |
+| `.next/server` | Server-side rendering code |
+| `.next/cache` | Build cache for faster incremental builds |
+
+## Production checklist
+
+Before deploying to production, review the [production checklist](/pages/guides/production-checklist) for recommendations on performance, security, and reliability.

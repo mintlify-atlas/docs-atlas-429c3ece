@@ -1,0 +1,278 @@
+---
+title: Authentication
+description: Learn how to implement authentication in Next.js Pages Router applications, covering session management and route protection.
+---
+
+Authentication verifies a user's identity. Authorization controls what routes and data the user can access. This guide covers implementing both in the Pages Router.
+
+## Authentication concepts
+
+1. **Authentication** — verifies who the user is (username and password, OAuth, etc.)
+2. **Session Management** — tracks the user's auth state across requests
+3. **Authorization** — decides what routes and data the user can access
+
+## Sign-up and login form
+
+In the Pages Router, authentication is handled by submitting credentials to an API Route:
+
+<Tabs>
+  <Tab title="TypeScript">
+  ```tsx filename="pages/login.tsx"
+  import { FormEvent } from 'react'
+  import { useRouter } from 'next/router'
+
+  export default function LoginPage() {
+    const router = useRouter()
+
+    async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+      event.preventDefault()
+
+      const formData = new FormData(event.currentTarget)
+      const email = formData.get('email')
+      const password = formData.get('password')
+
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      if (response.ok) {
+        router.push('/profile')
+      } else {
+        // Handle errors
+      }
+    }
+
+    return (
+      <form onSubmit={handleSubmit}>
+        <input type="email" name="email" placeholder="Email" required />
+        <input type="password" name="password" placeholder="Password" required />
+        <button type="submit">Login</button>
+      </form>
+    )
+  }
+  ```
+  </Tab>
+  <Tab title="JavaScript">
+  ```jsx filename="pages/login.jsx"
+  import { useRouter } from 'next/router'
+
+  export default function LoginPage() {
+    const router = useRouter()
+
+    async function handleSubmit(event) {
+      event.preventDefault()
+
+      const formData = new FormData(event.currentTarget)
+      const email = formData.get('email')
+      const password = formData.get('password')
+
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      if (response.ok) {
+        router.push('/profile')
+      } else {
+        // Handle errors
+      }
+    }
+
+    return (
+      <form onSubmit={handleSubmit}>
+        <input type="email" name="email" placeholder="Email" required />
+        <input type="password" name="password" placeholder="Password" required />
+        <button type="submit">Login</button>
+      </form>
+    )
+  }
+  ```
+  </Tab>
+</Tabs>
+
+Handle authentication in the API Route:
+
+<Tabs>
+  <Tab title="TypeScript">
+  ```ts filename="pages/api/auth/login.ts"
+  import type { NextApiRequest, NextApiResponse } from 'next'
+  import { signIn } from '@/auth'
+
+  export default async function handler(
+    req: NextApiRequest,
+    res: NextApiResponse
+  ) {
+    try {
+      const { email, password } = req.body
+      await signIn('credentials', { email, password })
+
+      res.status(200).json({ success: true })
+    } catch (error) {
+      if (error.type === 'CredentialsSignin') {
+        res.status(401).json({ error: 'Invalid credentials.' })
+      } else {
+        res.status(500).json({ error: 'Something went wrong.' })
+      }
+    }
+  }
+  ```
+  </Tab>
+  <Tab title="JavaScript">
+  ```js filename="pages/api/auth/login.js"
+  import { signIn } from '@/auth'
+
+  export default async function handler(req, res) {
+    try {
+      const { email, password } = req.body
+      await signIn('credentials', { email, password })
+
+      res.status(200).json({ success: true })
+    } catch (error) {
+      if (error.type === 'CredentialsSignin') {
+        res.status(401).json({ error: 'Invalid credentials.' })
+      } else {
+        res.status(500).json({ error: 'Something went wrong.' })
+      }
+    }
+  }
+  ```
+  </Tab>
+</Tabs>
+
+## Session management
+
+There are two types of sessions:
+
+1. **Stateless** — session data is stored in the browser's cookies
+2. **Database** — session data is stored in a database, with only the session ID in the cookie
+
+### Setting cookies via API Routes
+
+```ts filename="pages/api/login.ts"
+import { serialize } from 'cookie'
+import type { NextApiRequest, NextApiResponse } from 'next'
+import { encrypt } from '@/lib/session'
+
+export default function handler(req: NextApiRequest, res: NextApiResponse) {
+  const sessionData = req.body
+  const encryptedSessionData = encrypt(sessionData)
+
+  const cookie = serialize('session', encryptedSessionData, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 60 * 60 * 24 * 7, // One week
+    path: '/',
+  })
+  res.setHeader('Set-Cookie', cookie)
+  res.status(200).json({ message: 'Successfully set cookie!' })
+}
+```
+
+### Database sessions
+
+```ts filename="pages/api/create-session.ts"
+import db from '../../lib/db'
+import type { NextApiRequest, NextApiResponse } from 'next'
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  try {
+    const user = req.body
+    const sessionId = generateSessionId()
+    await db.insertSession({
+      sessionId,
+      userId: user.id,
+      createdAt: new Date(),
+    })
+
+    res.status(200).json({ sessionId })
+  } catch (error) {
+    res.status(500).json({ error: 'Internal Server Error' })
+  }
+}
+```
+
+## Authorization
+
+### Protecting routes with `getServerSideProps`
+
+Check authentication inside `getServerSideProps` to redirect unauthenticated users:
+
+```tsx filename="pages/dashboard.tsx"
+import type { GetServerSideProps } from 'next'
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const session = await getSession(context)
+
+  if (!session) {
+    return {
+      redirect: {
+        destination: '/login',
+        permanent: false,
+      },
+    }
+  }
+
+  return {
+    props: { user: session.user },
+  }
+}
+
+export default function Dashboard({ user }) {
+  return <h1>Welcome, {user.name}</h1>
+}
+```
+
+### Protecting routes with Proxy
+
+Use Proxy to perform optimistic auth checks on every route:
+
+```ts filename="proxy.ts"
+import { NextRequest, NextResponse } from 'next/server'
+import { decrypt } from '@/lib/session'
+import { cookies } from 'next/headers'
+
+const protectedRoutes = ['/dashboard']
+const publicRoutes = ['/login', '/signup', '/']
+
+export default async function proxy(req: NextRequest) {
+  const path = req.nextUrl.pathname
+  const isProtectedRoute = protectedRoutes.includes(path)
+  const isPublicRoute = publicRoutes.includes(path)
+
+  const cookie = (await cookies()).get('session')?.value
+  const session = await decrypt(cookie)
+
+  if (isProtectedRoute && !session?.userId) {
+    return NextResponse.redirect(new URL('/login', req.nextUrl))
+  }
+
+  if (
+    isPublicRoute &&
+    session?.userId &&
+    !req.nextUrl.pathname.startsWith('/dashboard')
+  ) {
+    return NextResponse.redirect(new URL('/dashboard', req.nextUrl))
+  }
+
+  return NextResponse.next()
+}
+
+export const config = {
+  matcher: ['/((?!api|_next/static|_next/image|.*\\.png$).*)'],
+}
+```
+
+## Auth libraries
+
+For increased security and simplicity, use an authentication library:
+
+- [Auth.js (NextAuth.js)](https://authjs.dev/) — flexible, supports many providers
+- [Clerk](https://clerk.com/) — complete user management platform
+- [Lucia](https://lucia-auth.com/) — simple, flexible auth library
+- [iron-session](https://github.com/vvo/iron-session) — stateless session management

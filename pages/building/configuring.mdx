@@ -1,0 +1,190 @@
+---
+title: Configuring
+description: Learn how to configure your Next.js Pages Router application, including error handling.
+---
+
+## Error handling
+
+Next.js provides a built-in mechanism to handle errors at different levels of your application.
+
+### Handling errors in development
+
+When there is a runtime error during development, you will see an **overlay** covering the page. This overlay is only visible when the development server runs using `next dev` and will not be shown in production. Fixing the error will automatically dismiss the overlay.
+
+### Handling server errors
+
+Next.js provides a static 500 page by default for server-side errors. Customize it by creating `pages/500.js`:
+
+```jsx filename="pages/500.js"
+export default function Custom500() {
+  return <h1>500 - Server-side error occurred</h1>
+}
+```
+
+You can also create a custom 404 page at `pages/404.js`:
+
+```jsx filename="pages/404.js"
+export default function Custom404() {
+  return <h1>404 - Page Not Found</h1>
+}
+```
+
+### Handling client errors with Error Boundaries
+
+React [Error Boundaries](https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary) let you handle JavaScript errors gracefully on the client so other parts of the application continue working.
+
+Create an `ErrorBoundary` class component:
+
+```jsx
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props)
+    this.state = { hasError: false }
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true }
+  }
+  componentDidCatch(error, errorInfo) {
+    console.log({ error, errorInfo })
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div>
+          <h2>Oops, there is an error!</h2>
+          <button
+            type="button"
+            onClick={() => this.setState({ hasError: false })}
+          >
+            Try again?
+          </button>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
+
+export default ErrorBoundary
+```
+
+Wrap the `Component` prop in `pages/_app.js`:
+
+```jsx
+import ErrorBoundary from '../components/ErrorBoundary'
+
+function MyApp({ Component, pageProps }) {
+  return (
+    <ErrorBoundary>
+      <Component {...pageProps} />
+    </ErrorBoundary>
+  )
+}
+
+export default MyApp
+```
+
+### Reporting errors
+
+To monitor client errors, use a service like [Sentry](https://github.com/vercel/next.js/tree/canary/examples/with-sentry), Bugsnag, or Datadog.
+
+## next.config.js
+
+The `next.config.js` file at the root of your project configures Next.js behavior:
+
+```js filename="next.config.js"
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+}
+
+module.exports = nextConfig
+```
+
+Common configuration options include:
+
+| Option | Description |
+|--------|-------------|
+| `reactStrictMode` | Enable React strict mode |
+| `images` | Configure the Next.js Image Optimization API |
+| `env` | Add environment variables to the JavaScript bundle |
+| `basePath` | Deploy the app under a sub-path |
+| `redirects` | Configure URL redirects |
+| `rewrites` | Configure URL rewrites |
+| `headers` | Set custom HTTP response headers |
+| `output` | Configure build output (e.g., `'standalone'`, `'export'`) |
+| `pageExtensions` | Extend the default page file extensions |
+
+See the [next.config.js API reference](/pages/api-reference/config/next-config-js) for all available options.
+
+## TypeScript
+
+Next.js has built-in TypeScript support. If you need to add TypeScript to an existing project, rename a file to `.ts` or `.tsx` and run `next dev`.
+
+For stricter type checking, you can enable TypeScript strict mode in your `tsconfig.json`:
+
+```json filename="tsconfig.json"
+{
+  "compilerOptions": {
+    "strict": true
+  }
+}
+```
+
+## ESLint
+
+Next.js provides an integrated ESLint experience with `eslint-config-next`. Run `next lint` to check your code:
+
+```bash
+npx next lint
+```
+
+You can customize ESLint rules in `.eslintrc.json`:
+
+```json filename=".eslintrc.json"
+{
+  "extends": "next/core-web-vitals"
+}
+```
+
+## Environment variables
+
+Next.js has built-in support for environment variables from `.env` files:
+
+```txt filename=".env"
+DB_HOST=localhost
+DB_USER=myuser
+DB_PASS=mypassword
+```
+
+To expose variables to the browser, prefix them with `NEXT_PUBLIC_`:
+
+```txt filename=".env"
+NEXT_PUBLIC_ANALYTICS_ID=abcdefghijk
+```
+
+See [Environment Variables](/pages/guides/environment-variables) for details.
+
+## Absolute imports and module path aliases
+
+Configure module path aliases in `tsconfig.json` or `jsconfig.json`:
+
+```json filename="tsconfig.json"
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/components/*": ["components/*"],
+      "@/lib/*": ["lib/*"]
+    }
+  }
+}
+```
+
+Then import using the alias:
+
+```jsx
+import Button from '@/components/button'
+import { db } from '@/lib/database'
+```

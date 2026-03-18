@@ -1,0 +1,143 @@
+---
+title: Project structure and organization
+description: Learn the folder and file conventions in Next.js App Router, and how to organize your project.
+---
+
+This page provides an overview of the folder and file conventions in Next.js, and recommendations for organizing your project.
+
+## Top-level folders
+
+| Folder | Description |
+|--------|-------------|
+| `app/` | App Router — all routes, layouts, and pages |
+| `pages/` | Pages Router (if using legacy router) |
+| `public/` | Static assets served from the root URL |
+| `src/` | Optional source folder for application code |
+
+## Top-level files
+
+| File | Description |
+|------|-------------|
+| `next.config.js` | Configuration file for Next.js |
+| `package.json` | Project dependencies and scripts |
+| `instrumentation.ts` | OpenTelemetry and instrumentation |
+| `.env` | Environment variables |
+| `.env.local` | Local environment variables (not tracked by git) |
+| `.env.production` | Production environment variables |
+| `.env.development` | Development environment variables |
+| `eslint.config.mjs` | ESLint configuration |
+| `tsconfig.json` | TypeScript configuration |
+| `next-env.d.ts` | TypeScript declarations for Next.js (auto-generated) |
+
+## Routing files (App Router)
+
+| File | Extensions | Description |
+|------|-----------|-------------|
+| `layout` | `.js` `.jsx` `.tsx` | Shared layout UI |
+| `page` | `.js` `.jsx` `.tsx` | Route page UI |
+| `loading` | `.js` `.jsx` `.tsx` | Loading skeleton UI |
+| `not-found` | `.js` `.jsx` `.tsx` | 404 UI |
+| `error` | `.js` `.jsx` `.tsx` | Error boundary UI |
+| `global-error` | `.js` `.jsx` `.tsx` | Global error boundary UI |
+| `route` | `.js` `.ts` | API endpoint |
+| `template` | `.js` `.jsx` `.tsx` | Re-rendered layout |
+| `default` | `.js` `.jsx` `.tsx` | Parallel route fallback |
+
+## Nested routes
+
+Folders define URL segments. Nesting folders nests segments.
+
+| Path | URL |
+|------|-----|
+| `app/page.tsx` | `/` |
+| `app/blog/page.tsx` | `/blog` |
+| `app/blog/[slug]/page.tsx` | `/blog/:slug` |
+| `app/shop/[...slug]/page.tsx` | `/shop/*` |
+
+## Dynamic routes
+
+| Convention | URL pattern | Description |
+|------------|-------------|-------------|
+| `[segment]` | `/blog/my-post` | Single dynamic segment |
+| `[...segment]` | `/shop/a/b/c` | Catch-all segments |
+| `[[...segment]]` | `/docs`, `/docs/a/b` | Optional catch-all |
+
+## Route groups and private folders
+
+| Convention | Description |
+|------------|-------------|
+| `(group)` | Group routes without affecting URL |
+| `_folder` | Opt folder and children out of routing |
+
+## Parallel and Intercepting routes
+
+| Convention | Description |
+|------------|-------------|
+| `@folder` | Named slot for parallel routes |
+| `(.)folder` | Intercept same-level segment |
+| `(..)folder` | Intercept one level above |
+| `(...)folder` | Intercept from root |
+
+## Metadata files
+
+| File | Extensions | Description |
+|------|-----------|-------------|
+| `favicon` | `.ico` | Favicon |
+| `icon` | `.ico` `.jpg` `.jpeg` `.png` `.svg` | App icon |
+| `apple-icon` | `.jpg` `.jpeg` `.png` | Apple icon |
+| `opengraph-image` | `.jpg` `.jpeg` `.png` `.gif` | OG image |
+| `twitter-image` | `.jpg` `.jpeg` `.png` `.gif` | Twitter card image |
+| `sitemap` | `.xml` `.js` `.ts` | XML sitemap |
+| `robots` | `.txt` `.js` `.ts` | Robots.txt |
+
+## Project organization strategies
+
+Next.js is unopinionated about where you put your application files. Here are common approaches:
+
+<Tabs>
+  <Tab title="Store files in app/">
+    Colocate related files next to their routes:
+
+    ```
+    app/
+      dashboard/
+        components/
+          Chart.tsx
+        utils/
+          data.ts
+        page.tsx
+        layout.tsx
+    ```
+  </Tab>
+  <Tab title="Top-level folders">
+    Keep routes and application code separate:
+
+    ```
+    app/
+      dashboard/
+        page.tsx
+    components/
+      Chart.tsx
+    utils/
+      data.ts
+    ```
+  </Tab>
+  <Tab title="src/ directory">
+    Use `src/` to separate application code from config:
+
+    ```
+    src/
+      app/
+        dashboard/
+          page.tsx
+      components/
+        Chart.tsx
+    next.config.js
+    tsconfig.json
+    ```
+  </Tab>
+</Tabs>
+
+<Tip>
+Use private folders (`_folder`) to opt files out of routing. This is useful for colocating utilities, tests, and components next to their routes.
+</Tip>

@@ -1,0 +1,126 @@
+---
+title: _document.js
+description: Extend the default document markup added by Next.js using the custom Document.
+---
+
+A custom `Document` updates the `<html>` and `<body>` tags used to render a page. Create `pages/_document.js` to override the default.
+
+## Default `_document`
+
+```jsx filename="pages/_document.js"
+import { Html, Head, Main, NextScript } from 'next/document'
+
+export default function Document() {
+  return (
+    <Html lang="en">
+      <Head />
+      <body>
+        <Main />
+        <NextScript />
+      </body>
+    </Html>
+  )
+}
+```
+
+<Note>
+  `<Html>`, `<Head />`, `<Main />`, and `<NextScript />` are all required for the page to render correctly.
+</Note>
+
+## TypeScript
+
+```tsx filename="pages/_document.tsx"
+import { Html, Head, Main, NextScript } from 'next/document'
+
+export default function Document() {
+  return (
+    <Html lang="en">
+      <Head />
+      <body>
+        <Main />
+        <NextScript />
+      </body>
+    </Html>
+  )
+}
+```
+
+## Caveats
+
+- `_document` is only rendered on the server, so event handlers like `onClick` cannot be used here
+- The `<Head />` component used in `_document` is not the same as `next/head`. The `<Head />` in `_document` should only be used for `<head>` code common to all pages
+- React components outside of `<Main />` will not be initialized by the browser. Do not add application logic here or custom CSS. For shared components across pages, use [layouts](/pages/building/routing#pages-and-layouts)
+- `_document` does not support `getStaticProps` or `getServerSideProps`
+
+## Adding global `<head>` elements
+
+Add tags to all pages' `<head>` using the `<Head />` component in `_document`:
+
+```jsx filename="pages/_document.js"
+import { Html, Head, Main, NextScript } from 'next/document'
+
+export default function Document() {
+  return (
+    <Html lang="en">
+      <Head>
+        <meta name="theme-color" content="#000000" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+      </Head>
+      <body>
+        <Main />
+        <NextScript />
+      </body>
+    </Html>
+  )
+}
+```
+
+## Customizing `renderPage`
+
+Customizing `renderPage` is advanced and only needed for libraries like CSS-in-JS to support server-side rendering.
+
+<Warning>
+  We do not recommend using this pattern. Instead, consider incrementally adopting the App Router.
+</Warning>
+
+```jsx filename="pages/_document.jsx"
+import Document, { Html, Head, Main, NextScript } from 'next/document'
+
+class MyDocument extends Document {
+  static async getInitialProps(ctx) {
+    const originalRenderPage = ctx.renderPage
+
+    // Run the React rendering logic synchronously
+    ctx.renderPage = () =>
+      originalRenderPage({
+        // Useful for wrapping the whole react tree
+        enhanceApp: (App) => App,
+        // Useful for wrapping in a per-page basis
+        enhanceComponent: (Component) => Component,
+      })
+
+    // Run the parent `getInitialProps`, it now includes the custom `renderPage`
+    const initialProps = await Document.getInitialProps(ctx)
+
+    return initialProps
+  }
+
+  render() {
+    return (
+      <Html lang="en">
+        <Head />
+        <body>
+          <Main />
+          <NextScript />
+        </body>
+      </Html>
+    )
+  }
+}
+
+export default MyDocument
+```
+
+<Note>
+  `getInitialProps` in `_document` is not called during client-side transitions.
+</Note>

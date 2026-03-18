@@ -1,0 +1,138 @@
+---
+title: useRouter
+description: API reference for the useRouter hook, which enables programmatic navigation in Client Components.
+---
+
+The `useRouter` hook allows you to programmatically change routes inside [Client Components](/app/getting-started/server-and-client-components).
+
+<Tip>Use the [`<Link>` component](/app/api-reference/components/link) for navigation unless you have a specific requirement for `useRouter`.</Tip>
+
+```tsx filename="app/example-client-component.tsx"
+'use client'
+
+import { useRouter } from 'next/navigation'
+
+export default function Page() {
+  const router = useRouter()
+
+  return (
+    <button type="button" onClick={() => router.push('/dashboard')}>
+      Dashboard
+    </button>
+  )
+}
+```
+
+## Methods
+
+<ResponseField name="router.push(href, options?)" type="function">
+  Perform a client-side navigation to the provided route. Adds a new entry into the browser history stack.
+
+  Options:
+  - `scroll: boolean` — whether to scroll to top after navigation
+  - `transitionTypes: string[]` — passed to `React.addTransitionType` inside the navigation transition
+</ResponseField>
+
+<ResponseField name="router.replace(href, options?)" type="function">
+  Perform a client-side navigation without adding a new entry into the browser history stack.
+
+  Options:
+  - `scroll: boolean`
+  - `transitionTypes: string[]`
+</ResponseField>
+
+<ResponseField name="router.refresh()" type="function">
+  Refresh the current route by making a new request to the server, re-fetching data, and re-rendering Server Components. The client merges the updated payload without losing unaffected client-side React or browser state.
+
+  This clears the Client Cache for the current route but does **not** invalidate the server-side cache. Use `revalidatePath` or `revalidateTag` to invalidate server-side cached data.
+</ResponseField>
+
+<ResponseField name="router.prefetch(href, options?)" type="function">
+  Prefetch the provided route for faster client-side transitions.
+
+  Options:
+  - `onInvalidate: () => void` — called when prefetched data becomes stale
+</ResponseField>
+
+<ResponseField name="router.back()" type="function">
+  Navigate back to the previous route in the browser history stack.
+</ResponseField>
+
+<ResponseField name="router.forward()" type="function">
+  Navigate forwards to the next page in the browser history stack.
+</ResponseField>
+
+<Note>Do not send untrusted or unsanitized URLs to `router.push` or `router.replace`, as this can introduce XSS vulnerabilities.</Note>
+
+## Examples
+
+### Router events
+
+Listen for page changes by composing `usePathname` and `useSearchParams`:
+
+```jsx filename="app/components/navigation-events.js"
+'use client'
+
+import { useEffect } from 'react'
+import { usePathname, useSearchParams } from 'next/navigation'
+
+export function NavigationEvents() {
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const url = `${pathname}?${searchParams}`
+    console.log(url)
+  }, [pathname, searchParams])
+
+  return '...'
+}
+```
+
+Import into a layout wrapped in `<Suspense>` because `useSearchParams` causes client-side rendering to the nearest Suspense boundary during prerendering:
+
+```jsx filename="app/layout.js"
+import { Suspense } from 'react'
+import { NavigationEvents } from './components/navigation-events'
+
+export default function Layout({ children }) {
+  return (
+    <html lang="en">
+      <body>
+        {children}
+        <Suspense fallback={null}>
+          <NavigationEvents />
+        </Suspense>
+      </body>
+    </html>
+  )
+}
+```
+
+### Disabling scroll to top
+
+```tsx filename="app/example-client-component.tsx"
+'use client'
+
+import { useRouter } from 'next/navigation'
+
+export default function Page() {
+  const router = useRouter()
+
+  return (
+    <button
+      type="button"
+      onClick={() => router.push('/dashboard', { scroll: false })}
+    >
+      Dashboard
+    </button>
+  )
+}
+```
+
+### Migrating from `next/router`
+
+- Import `useRouter` from `next/navigation`, not `next/router`.
+- `pathname` is replaced by `usePathname()`.
+- `query` is replaced by `useSearchParams()`.
+- `router.events` is replaced by composing `usePathname` and `useSearchParams`.

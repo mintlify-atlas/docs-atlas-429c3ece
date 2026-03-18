@@ -1,97 +1,96 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "Next.js Documentation"
+description: "The React Framework for the Web. Build fast, full-stack web applications with the App Router, Server Components, and built-in optimizations."
 ---
 
-## Setting up
+## What is Next.js?
 
-Get your documentation site up and running in minutes.
+Next.js is a React framework for building full-stack web applications. You use React Components to build user interfaces, and Next.js for additional features and optimizations including routing, data fetching, rendering strategies, and more.
 
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
+Next.js automatically configures lower-level tools like bundlers and compilers, so you can focus on building your product and shipping quickly.
 
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="App Router" icon="route" href="/app/getting-started/introduction">
+    The modern router with React Server Components, nested layouts, streaming, and the `use cache` directive.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Pages Router" icon="file-code" href="/pages/getting-started/introduction">
+    The original file-system based router, still fully supported with SSR, SSG, and ISR.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="Architecture" icon="building" href="/architecture/overview">
+    Learn how Next.js works under the hood: the compiler, Fast Refresh, and browser support.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="API Reference" icon="code" href="/app/api-reference/overview">
+    Complete reference for all Next.js APIs, components, functions, and configuration options.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## Key features
 
-Everything you need to create world-class documentation.
+<CardGroup cols={3}>
+  <Card title="Server Components" icon="server">
+    Render components on the server to reduce JavaScript sent to the browser and improve performance.
+  </Card>
+  <Card title="File-system Routing" icon="folder-tree">
+    Create routes by adding files to your `app/` or `pages/` directory — no configuration needed.
+  </Card>
+  <Card title="Data Fetching" icon="database">
+    Fetch data with `async/await` in Server Components or use `getServerSideProps` and `getStaticProps`.
+  </Card>
+  <Card title="Built-in Optimizations" icon="bolt">
+    Automatic image, font, and script optimization out of the box.
+  </Card>
+  <Card title="Turbopack" icon="zap">
+    The fast Rust-based bundler for lightning-fast local development and builds.
+  </Card>
+  <Card title="TypeScript" icon="brackets-curly">
+    First-class TypeScript support with zero configuration required.
+  </Card>
+</CardGroup>
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+## Start building
 
-## Need inspiration?
+<Steps>
+  <Step title="Create a new project">
+    Use `create-next-app` to scaffold a new application:
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+    <CodeGroup>
+    ```bash npm
+    npx create-next-app@latest my-app
+    ```
+    ```bash yarn
+    yarn create next-app my-app
+    ```
+    ```bash pnpm
+    pnpm create next-app my-app
+    ```
+    </CodeGroup>
+  </Step>
+  <Step title="Run the development server">
+    ```bash
+    cd my-app
+    npm run dev
+    ```
+
+    Open [http://localhost:3000](http://localhost:3000) to see your application.
+  </Step>
+  <Step title="Start editing">
+    Edit `app/page.tsx` (App Router) or `pages/index.tsx` (Pages Router) to see live updates thanks to Fast Refresh.
+  </Step>
+</Steps>
+
+## Explore the docs
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/app/getting-started/installation">
+    Set up a new Next.js project from scratch, including system requirements and project structure.
+  </Card>
+  <Card title="Routing" icon="signs-post" href="/app/getting-started/layouts-and-pages">
+    Learn how to create pages, layouts, and nested routes using the App Router file conventions.
+  </Card>
+  <Card title="Data Fetching" icon="cloud-arrow-down" href="/app/getting-started/fetching-data">
+    Fetch, cache, and revalidate data in Server Components and Route Handlers.
+  </Card>
+  <Card title="Deploying" icon="rocket" href="/app/getting-started/deploying">
+    Deploy your Next.js application to Vercel or any Node.js server.
+  </Card>
+</CardGroup>

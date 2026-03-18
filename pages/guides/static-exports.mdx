@@ -1,0 +1,102 @@
+---
+title: Static exports
+description: Next.js enables starting as a static site or Single-Page Application (SPA), then later optionally upgrading to use features that require a server.
+---
+
+Next.js enables you to export a fully static site that can be deployed and hosted on any web server that serves HTML/CSS/JS static assets.
+
+## Configuration
+
+Enable static export in `next.config.js`:
+
+```js filename="next.config.js"
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  output: 'export',
+
+  // Optional: Change links `/me` -> `/me/` and emit `/me.html` -> `/me/index.html`
+  // trailingSlash: true,
+
+  // Optional: Change the output directory `out` -> `dist`
+  // distDir: 'dist',
+}
+
+module.exports = nextConfig
+```
+
+After running `next build`, Next.js creates an `out` folder with static HTML, CSS, and JS assets.
+
+You can use `getStaticProps` and `getStaticPaths` to generate static pages for each route in your `pages` directory.
+
+## Supported features
+
+| Feature | Support |
+|---------|---------|
+| Static pages | Supported |
+| Dynamic routes with `getStaticPaths` | Supported |
+| `getStaticProps` | Supported |
+| `next/image` (with custom loader) | Supported |
+| `next/link` | Supported |
+
+## Unsupported features
+
+<Warning>
+  The following features require a Node.js server and are not supported with `output: 'export'`:
+</Warning>
+
+- `getServerSideProps`
+- API Routes (`pages/api/*`)
+- Image Optimization (default loader)
+- ISR (`revalidate` in `getStaticProps`)
+- Internationalized routing
+- `fallback: true` and `fallback: 'blocking'` in `getStaticPaths`
+
+## Deploying the static output
+
+The `out` directory can be deployed to any static hosting service:
+
+- [GitHub Pages](https://pages.github.com/)
+- [Netlify](https://www.netlify.com/)
+- [AWS S3](https://aws.amazon.com/s3/)
+- [Cloudflare Pages](https://pages.cloudflare.com/)
+- Any web server that can serve static files
+
+### Serving locally
+
+Test the static output locally:
+
+```bash
+npx serve out
+```
+
+## Generating paths
+
+For dynamic routes, define paths in `getStaticPaths`:
+
+```jsx filename="pages/posts/[id].js"
+export async function getStaticPaths() {
+  const res = await fetch('https://.../posts')
+  const posts = await res.json()
+
+  const paths = posts.map((post) => ({
+    params: { id: post.id },
+  }))
+
+  return { paths, fallback: false }
+}
+
+export async function getStaticProps({ params }) {
+  const res = await fetch(`https://.../posts/${params.id}`)
+  const post = await res.json()
+
+  return { props: { post } }
+}
+
+export default function Post({ post }) {
+  return <h1>{post.title}</h1>
+}
+```
+
+<Note>
+  Internationalized routing does not integrate with `output: 'export'` as it requires the Next.js routing layer.
+</Note>

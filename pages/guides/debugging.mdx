@@ -1,0 +1,125 @@
+---
+title: Debugging
+description: Learn how to debug your Next.js application with VS Code, Chrome DevTools, or Firefox DevTools.
+---
+
+This documentation explains how to debug your Next.js frontend and backend code with full source maps support using the [VS Code debugger](https://code.visualstudio.com/docs/editor/debugging), [Chrome DevTools](https://developers.google.com/web/tools/chrome-devtools), or [Firefox DevTools](https://firefox-source-docs.mozilla.org/devtools-user/).
+
+## Debugging with VS Code
+
+Create a file named `.vscode/launch.json` at the root of your project:
+
+```json filename=".vscode/launch.json"
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Next.js: debug server-side",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "npm run dev -- --inspect"
+    },
+    {
+      "name": "Next.js: debug client-side",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:3000"
+    },
+    {
+      "name": "Next.js: debug client-side (Firefox)",
+      "type": "firefox",
+      "request": "launch",
+      "url": "http://localhost:3000",
+      "reAttach": true,
+      "pathMappings": [
+        {
+          "url": "webpack://_N_E",
+          "path": "${workspaceFolder}"
+        }
+      ]
+    },
+    {
+      "name": "Next.js: debug full stack",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/node_modules/next/dist/bin/next",
+      "runtimeArgs": ["--inspect"],
+      "skipFiles": ["<node_internals>/**"],
+      "serverReadyAction": {
+        "action": "debugWithEdge",
+        "killOnServerStop": true,
+        "pattern": "- Local:.+(https?://.+)",
+        "uriFormat": "%s",
+        "webRoot": "${workspaceFolder}"
+      }
+    }
+  ]
+}
+```
+
+<Note>
+  To use Firefox debugging in VS Code, install the [Firefox Debugger extension](https://marketplace.visualstudio.com/items?itemName=firefox-devtools.vscode-firefox-debug).
+</Note>
+
+`npm run dev` can be replaced with `yarn dev` or `pnpm dev`.
+
+Go to the Debug panel (`Ctrl+Shift+D` on Windows/Linux, `⇧+⌘+D` on macOS), select a launch configuration, then press `F5` to start debugging.
+
+## Using JetBrains WebStorm
+
+1. Click the dropdown listing the runtime configuration and click **Edit Configurations...**
+2. Create a `JavaScript Debug` configuration with `http://localhost:3000` as the URL
+3. Run the configuration — the browser opens automatically in debug mode
+
+## Debugging with Chrome DevTools
+
+### Server-side code
+
+Run the development server with the Node.js inspector:
+
+```bash
+NODE_OPTIONS='--inspect' next dev
+```
+
+Then open `chrome://inspect` in Chrome and connect to your Next.js application.
+
+### Client-side code
+
+Client-side code can be debugged directly in Chrome DevTools:
+
+1. Open Chrome DevTools (`F12`)
+2. Go to the **Sources** tab
+3. Use `Ctrl+P` to find a file to debug
+4. Set breakpoints by clicking line numbers
+
+## Source maps
+
+Next.js generates source maps in development by default, so you can debug original TypeScript or JSX code rather than compiled output.
+
+To enable source maps in production:
+
+```js filename="next.config.js"
+module.exports = {
+  productionBrowserSourceMaps: true,
+}
+```
+
+<Warning>
+  Enabling production source maps exposes your original source code to end users. Use with caution.
+</Warning>
+
+## Debug logging
+
+Use the `DEBUG` environment variable to enable verbose Next.js logging:
+
+```bash
+DEBUG=next:* next dev
+```
+
+Specific debug namespaces:
+
+| Namespace | Description |
+|-----------|-------------|
+| `next:router:*` | Router internals |
+| `next:loader:*` | Module loading |
+| `next:cache:*` | Cache operations |

@@ -1,0 +1,162 @@
+---
+title: Caching
+description: Learn how to cache data and UI in Next.js using the use cache directive and Cache Components.
+---
+
+Caching stores the result of data fetching and computations so future requests can be served faster without repeating the work.
+
+## Enabling Cache Components
+
+Enable Cache Components by adding the `cacheComponents` option to your Next.js config:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts next.config.ts
+    import type { NextConfig } from 'next'
+
+    const nextConfig: NextConfig = {
+      cacheComponents: true,
+    }
+
+    export default nextConfig
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```js next.config.js
+    /** @type {import('next').NextConfig} */
+    const nextConfig = {
+      cacheComponents: true,
+    }
+
+    module.exports = nextConfig
+    ```
+  </Tab>
+</Tabs>
+
+## The `use cache` directive
+
+The `use cache` directive caches the return value of async functions and components. Apply it at two levels:
+
+- **Data-level** — Cache a function that fetches data
+- **UI-level** — Cache an entire component or page
+
+### Data-level caching
+
+Add `'use cache'` at the top of a function body:
+
+```ts app/lib/data.ts
+import { cacheLife } from 'next/cache'
+
+export async function getUsers() {
+  'use cache'
+  cacheLife('hours')
+  return db.query('SELECT * FROM users')
+}
+```
+
+### UI-level caching
+
+Add `'use cache'` to cache an entire component or page:
+
+```tsx app/page.tsx
+import { cacheLife } from 'next/cache'
+
+export default async function Page() {
+  'use cache'
+  cacheLife('hours')
+
+  const users = await db.query('SELECT * FROM users')
+  return (
+    <ul>
+      {users.map((user) => (
+        <li key={user.id}>{user.name}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+## Cache lifetime with `cacheLife`
+
+`cacheLife` sets how long a cached result remains valid. Built-in profiles:
+
+| Profile | Stale | Revalidate | Expire |
+|---------|-------|------------|--------|
+| `seconds` | 0s | 1s | 1m |
+| `minutes` | 0s | 1m | 1h |
+| `hours` | 0s | 1h | 1d |
+| `days` | 0s | 1d | 2w |
+| `weeks` | 0s | 7d | 1m |
+| `max` | 0s | 1m | 1y |
+
+You can also define custom profiles in `next.config.js`:
+
+```ts next.config.ts
+export default {
+  cacheLife: {
+    blog: {
+      stale: 3600,      // 1 hour
+      revalidate: 900,  // 15 minutes
+      expire: 86400,    // 1 day
+    },
+  },
+}
+```
+
+## Cache tags with `cacheTag`
+
+Use `cacheTag` to label cached data for targeted invalidation:
+
+```ts app/lib/data.ts
+import { cacheTag } from 'next/cache'
+
+export async function getPost(id: string) {
+  'use cache'
+  cacheTag(`post-${id}`, 'posts')
+  return db.query('SELECT * FROM posts WHERE id = ?', [id])
+}
+```
+
+Invalidate by tag:
+
+```ts app/lib/actions.ts
+'use server'
+
+import { revalidateTag } from 'next/cache'
+
+export async function updatePost(id: string) {
+  // Update in database...
+  revalidateTag(`post-${id}`)
+  revalidateTag('posts')
+}
+```
+
+## Streaming uncached data
+
+For components that should always fetch fresh data, wrap them in `<Suspense>` instead of caching:
+
+```tsx app/page.tsx
+import { Suspense } from 'react'
+
+async function LiveData() {
+  const data = await fetch('https://api.example.com/live', {
+    cache: 'no-store'
+  })
+  return <div>{await data.json()}</div>
+}
+
+export default function Page() {
+  return (
+    <div>
+      <h1>Dashboard</h1>
+      <Suspense fallback={<p>Loading live data...</p>}>
+        <LiveData />
+      </Suspense>
+    </div>
+  )
+}
+```
+
+<Note>
+Without `cacheComponents: true`, see the [Caching without Cache Components](/app/guides/incremental-static-regeneration) guide for the previous caching model using `fetch` cache options and `revalidate`.
+</Note>

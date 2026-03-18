@@ -1,0 +1,176 @@
+---
+title: "<Image>"
+description: Optimize images in your Next.js application using the built-in next/image component.
+---
+
+The `next/image` component extends the HTML `<img>` element with automatic image optimization:
+
+- **Size optimization** — Automatically serves correctly sized images for each device, using modern image formats like WebP and AVIF
+- **Visual stability** — Prevents [Cumulative Layout Shift](https://web.dev/cls/) automatically
+- **Faster page loads** — Images are only loaded when they enter the viewport using native browser lazy loading
+- **Asset flexibility** — On-demand image resizing, even for images stored on remote servers
+
+## Usage
+
+```jsx
+import Image from 'next/image'
+import profilePic from '../public/me.png'
+
+export default function Page() {
+  return (
+    <Image
+      src={profilePic}
+      alt="Picture of the author"
+    />
+  )
+}
+```
+
+## Props
+
+### Required props
+
+<ParamField path="src" type="string | StaticImport" required>
+  Can be a statically imported image file, a path string, or an external URL.
+
+  - **Static import**: `import profilePic from '../public/me.png'`
+  - **Path string**: `"/images/profile.png"` (relative to the `public` directory)
+  - **External URL**: `"https://example.com/image.jpg"` (must be configured in `next.config.js`)
+</ParamField>
+
+<ParamField path="alt" type="string" required>
+  Describes the image for screen readers and search engines. If the image is purely decorative, pass an empty string (`alt=""`).
+</ParamField>
+
+<ParamField path="width" type="number">
+  The intrinsic width of the image in pixels. Required for non-statically imported images without `fill` prop.
+</ParamField>
+
+<ParamField path="height" type="number">
+  The intrinsic height of the image in pixels. Required for non-statically imported images without `fill` prop.
+</ParamField>
+
+### Optional props
+
+<ParamField path="fill" type="boolean">
+  When `true`, the image fills its parent element. The parent element must have `position: relative`.
+</ParamField>
+
+<ParamField path="loader" type="function">
+  A custom function to resolve image URLs. Overrides the default image loader.
+</ParamField>
+
+<ParamField path="sizes" type="string">
+  A string similar to the media query that tells how wide the image will be at different breakpoints. Greatly affects performance for images using `fill`.
+</ParamField>
+
+<ParamField path="quality" type="number">
+  Quality of the optimized image, between `1` and `100`. Defaults to `75`.
+</ParamField>
+
+<ParamField path="priority" type="boolean">
+  When `true`, the image is preloaded. Lazy loading is automatically disabled. Should be used for any image detected as the [Largest Contentful Paint (LCP)](https://web.dev/lcp/) element.
+</ParamField>
+
+<ParamField path="placeholder" type="'blur' | 'empty' | 'data:image/...'">
+  Placeholder to use while the image is loading. Defaults to `'empty'`.
+  - `'blur'` uses the `blurDataURL` prop
+  - `'empty'` shows blank space while loading
+</ParamField>
+
+<ParamField path="blurDataURL" type="string">
+  A base64-encoded image used as a placeholder before the full image loads. Only takes effect when `placeholder='blur'`.
+</ParamField>
+
+<ParamField path="unoptimized" type="boolean">
+  When `true`, the source image will be served as-is without optimization.
+</ParamField>
+
+<ParamField path="onLoad" type="function">
+  A callback function invoked once the image is loaded.
+</ParamField>
+
+<ParamField path="onError" type="function">
+  A callback function invoked when the image fails to load.
+</ParamField>
+
+<ParamField path="loading" type="'lazy' | 'eager'">
+  The loading behavior of the image. Defaults to `'lazy'`.
+
+  <Warning>Setting `loading='eager'` may result in worse performance. Use the `priority` prop instead for above-the-fold images.</Warning>
+</ParamField>
+
+## Configuration
+
+To use images from external domains, configure `remotePatterns` in `next.config.js`:
+
+```js filename="next.config.js"
+module.exports = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'example.com',
+        port: '',
+        pathname: '/account123/**',
+      },
+    ],
+  },
+}
+```
+
+## Examples
+
+### Responsive image
+
+```jsx
+import Image from 'next/image'
+import mountains from '../public/mountains.jpg'
+
+export default function Responsive() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <Image
+        alt="Mountains"
+        src={mountains}
+        sizes="100vw"
+        style={{
+          width: '100%',
+          height: 'auto',
+        }}
+      />
+    </div>
+  )
+}
+```
+
+### Fill container
+
+```jsx
+import Image from 'next/image'
+import mountains from '../public/mountains.jpg'
+
+export default function Fill() {
+  return (
+    <div
+      style={{
+        display: 'grid',
+        gridGap: '8px',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, auto))',
+      }}
+    >
+      <div style={{ position: 'relative', height: '400px' }}>
+        <Image
+          alt="Mountains"
+          src={mountains}
+          fill
+          sizes="(min-width: 808px) 50vw, 100vw"
+          style={{
+            objectFit: 'cover',
+          }}
+        />
+      </div>
+    </div>
+  )
+}
+```

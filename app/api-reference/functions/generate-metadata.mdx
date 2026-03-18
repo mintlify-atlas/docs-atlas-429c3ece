@@ -1,0 +1,199 @@
+---
+title: generateMetadata
+description: Learn how to add metadata to your Next.js application for improved SEO and web shareability using the metadata object or generateMetadata function.
+---
+
+You can define metadata using the `metadata` object or the `generateMetadata` function in `layout.js` or `page.js` files.
+
+## The `metadata` object
+
+To define static metadata, export a `Metadata` object:
+
+```tsx filename="layout.tsx | page.tsx"
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: '...',
+  description: '...',
+}
+
+export default function Page() {}
+```
+
+## `generateMetadata` function
+
+For metadata that depends on dynamic information (route params, external data), export a `generateMetadata` function:
+
+```tsx filename="app/products/[id]/page.tsx"
+import type { Metadata, ResolvingMetadata } from 'next'
+
+type Props = {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}
+
+export async function generateMetadata(
+  { params, searchParams }: Props,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  const { id } = await params
+  const product = await fetch(`https://.../${id}`).then((res) => res.json())
+
+  // Extend parent metadata
+  const previousImages = (await parent).openGraph?.images || []
+
+  return {
+    title: product.title,
+    openGraph: {
+      images: ['/some-specific-page-image.jpg', ...previousImages],
+    },
+  }
+}
+
+export default function Page({ params, searchParams }: Props) {}
+```
+
+You can type the first argument with `PageProps<'/route'>` or `LayoutProps<'/route'>` for strict typing.
+
+## Good to know
+
+- Metadata can be added to `layout.js` and `page.js` files.
+- Next.js automatically creates the relevant `<head>` tags.
+- The `metadata` object and `generateMetadata` function are **only supported in Server Components**.
+- You cannot export both from the same route segment.
+- `fetch` requests inside `generateMetadata` are automatically memoized for the same data across `generateMetadata`, `generateStaticParams`, Layouts, Pages, and Server Components.
+- File-based metadata (e.g., `opengraph-image`, `robots.txt`) has higher priority and overrides these exports.
+
+## Metadata fields
+
+### `title`
+
+```tsx
+export const metadata: Metadata = {
+  title: 'My App',
+  // or
+  title: {
+    default: 'My App',
+    template: '%s | My App',
+    absolute: 'Override Template',
+  },
+}
+```
+
+### `description`
+
+```tsx
+export const metadata: Metadata = {
+  description: 'My page description',
+}
+```
+
+### `openGraph`
+
+```tsx
+export const metadata: Metadata = {
+  openGraph: {
+    title: 'My App',
+    description: 'My description',
+    url: 'https://example.com',
+    siteName: 'My App',
+    images: [
+      {
+        url: 'https://example.com/og.png',
+        width: 800,
+        height: 600,
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+}
+```
+
+### `robots`
+
+```tsx
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: true,
+    nocache: true,
+    googleBot: {
+      index: true,
+      follow: false,
+      noimageindex: true,
+    },
+  },
+}
+```
+
+### `icons`
+
+```tsx
+export const metadata: Metadata = {
+  icons: {
+    icon: '/icon.png',
+    apple: '/apple-icon.png',
+    shortcut: '/shortcut-icon.png',
+  },
+}
+```
+
+### `twitter`
+
+```tsx
+export const metadata: Metadata = {
+  twitter: {
+    card: 'summary_large_image',
+    title: 'My App',
+    description: 'My description',
+    creator: '@username',
+    images: ['https://example.com/og.png'],
+  },
+}
+```
+
+### `alternates`
+
+```tsx
+export const metadata: Metadata = {
+  alternates: {
+    canonical: 'https://example.com',
+    languages: {
+      'en-US': 'https://example.com/en-US',
+      'de-DE': 'https://example.com/de-DE',
+    },
+  },
+}
+```
+
+### `metadataBase`
+
+Set a base URL for resolving relative metadata URLs:
+
+```tsx
+export const metadata: Metadata = {
+  metadataBase: new URL('https://example.com'),
+}
+```
+
+## Streaming metadata
+
+If `generateMetadata` introduces dynamic behavior, the resolved metadata can be streamed after sending the initial UI.
+
+## Why `generateMetadata` is Server Component only
+
+Metadata must be resolved on the server before the page component is rendered. This allows Next.js to include metadata in the initial HTML response. Move Client Component logic to a separate file:
+
+```tsx filename="app/page.tsx"
+import type { Metadata } from 'next'
+import { InteractiveComponent } from './interactive-component'
+
+export const metadata: Metadata = {
+  title: 'My Page',
+}
+
+export default function Page() {
+  return <InteractiveComponent />
+}
+```

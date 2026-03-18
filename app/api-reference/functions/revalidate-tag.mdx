@@ -1,0 +1,99 @@
+---
+title: revalidateTag
+description: API reference for the revalidateTag function, which invalidates cached data on-demand for a specific cache tag.
+---
+
+`revalidateTag` invalidates cached data on-demand for a specific cache tag.
+
+## Usage
+
+`revalidateTag` can be called in Server Functions and Route Handlers. It cannot be called in Client Components or Proxy.
+
+## Parameters
+
+```ts
+revalidateTag(tag: string, profile: string | { expire?: number }): void
+```
+
+<ParamField path="tag" type="string" required>
+  The cache tag to revalidate. Must not exceed 256 characters. Case-sensitive.
+</ParamField>
+
+<ParamField path="profile" type="string | { expire?: number }">
+  The revalidation behavior:
+
+  - **`"max"` (recommended)**: Marks the tag entry as stale. Stale content is served while fresh content is fetched in the background (stale-while-revalidate semantics).
+  - **Custom profile**: Any cache life profile defined in `cacheLife`.
+  - **`{ expire: 0 }`**: Expires data immediately (blocking revalidation). Use this for webhooks that require immediate expiration.
+
+  <Warning>The single-argument form `revalidateTag(tag)` is deprecated. Use the two-argument signature.</Warning>
+</ParamField>
+
+## Returns
+
+`revalidateTag` does not return a value.
+
+## Tags
+
+Assign tags to cached data using:
+
+**`fetch` with `next.tags`:**
+
+```tsx
+fetch(url, { next: { tags: ['posts'] } })
+```
+
+**`cacheTag` inside `use cache` functions:**
+
+```tsx
+import { cacheTag } from 'next/cache'
+
+async function getData() {
+  'use cache'
+  cacheTag('posts')
+  // ...
+}
+```
+
+## Relationship with `revalidatePath`
+
+`revalidateTag` invalidates data with specific tags across all pages, while `revalidatePath` invalidates specific page or layout paths.
+
+## Examples
+
+### Server Action
+
+```ts filename="app/actions.ts"
+'use server'
+
+import { revalidateTag } from 'next/cache'
+
+export default async function submit() {
+  await addPost()
+  revalidateTag('posts', 'max')
+}
+```
+
+### Route Handler
+
+```ts filename="app/api/revalidate/route.ts"
+import type { NextRequest } from 'next/server'
+import { revalidateTag } from 'next/cache'
+
+export async function GET(request: NextRequest) {
+  const tag = request.nextUrl.searchParams.get('tag')
+
+  if (tag) {
+    revalidateTag(tag, 'max')
+    return Response.json({ revalidated: true, now: Date.now() })
+  }
+
+  return Response.json({
+    revalidated: false,
+    now: Date.now(),
+    message: 'Missing tag to revalidate',
+  })
+}
+```
+
+<Note>For webhooks requiring immediate expiration, use `{ expire: 0 }`: `revalidateTag(tag, { expire: 0 })`. For all other cases, use `revalidateTag(tag, 'max')` or `updateTag` in Server Actions.</Note>

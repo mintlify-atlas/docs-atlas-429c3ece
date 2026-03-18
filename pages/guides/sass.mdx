@@ -1,0 +1,128 @@
+---
+title: Sass
+description: Learn how to use Sass in your Next.js Pages Router application.
+---
+
+Next.js has built-in support for Sass after the package is installed. Both `.scss` and `.sass` extensions are supported, as well as component-level Sass via CSS Modules.
+
+## Installation
+
+<CodeGroup>
+```bash npm
+npm install --save-dev sass
+```
+```bash yarn
+yarn add -D sass
+```
+```bash pnpm
+pnpm add -D sass
+```
+```bash bun
+bun add -D sass
+```
+</CodeGroup>
+
+<Note>
+  Sass supports [two different syntaxes](https://sass-lang.com/documentation/syntax):
+  - `.scss` requires the SCSS syntax (superset of CSS)
+  - `.sass` requires the Indented Syntax
+
+  If you're not sure which to choose, start with `.scss`.
+</Note>
+
+## Usage
+
+### Global Sass
+
+Import a `.scss` file in `pages/_app.js`:
+
+```jsx filename="pages/_app.js"
+import '../styles/globals.scss'
+
+export default function App({ Component, pageProps }) {
+  return <Component {...pageProps} />
+}
+```
+
+```scss filename="styles/globals.scss"
+$primary-color: #0070f3;
+
+body {
+  font-family: sans-serif;
+  color: $primary-color;
+}
+```
+
+### CSS Modules with Sass
+
+Use the `.module.scss` extension for component-scoped styles:
+
+```tsx filename="pages/index.tsx"
+import styles from './index.module.scss'
+
+export default function Home() {
+  return <h1 className={styles.title}>Hello World</h1>
+}
+```
+
+```scss filename="pages/index.module.scss"
+$heading-color: #0070f3;
+
+.title {
+  color: $heading-color;
+  font-size: 2rem;
+}
+```
+
+## Configuring Sass options
+
+Configure Sass options using `sassOptions` in `next.config.js`:
+
+```js filename="next.config.js"
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  sassOptions: {
+    additionalData: `$var: red;`,
+  },
+}
+
+module.exports = nextConfig
+```
+
+For TypeScript:
+
+```ts filename="next.config.ts"
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {
+  sassOptions: {
+    additionalData: `$var: red;`,
+  },
+}
+
+export default nextConfig
+```
+
+## Using variables
+
+Next.js supports Sass variables in CSS Module files:
+
+```scss filename="variables.module.scss"
+$primary-color: #64ff00;
+
+:export {
+  primaryColor: $primary-color;
+}
+```
+
+```jsx filename="pages/index.js"
+import variables from '../styles/variables.module.scss'
+
+export default function MyApp({ Component, pageProps }) {
+  return (
+    <Layout color={variables.primaryColor}>
+      <Component {...pageProps} />
+    </Layout>
+  )
+}
+```

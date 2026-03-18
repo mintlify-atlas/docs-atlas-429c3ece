@@ -1,0 +1,67 @@
+---
+title: Pages Router
+description: Before Next.js 13, the Pages Router was the main way to create routes in Next.js with an intuitive file-system router.
+---
+
+The **Pages Router** uses an intuitive file-system router to map each file to a route. It is still fully supported in all current versions of Next.js.
+
+<Note>
+  You're viewing the documentation for the Pages Router. See the [App Router](/app/getting-started/introduction) documentation for the latest features including React Server Components, streaming, and more.
+</Note>
+
+## What is the Pages Router?
+
+Before Next.js 13, the Pages Router was the main way to create routes in Next.js. It works by mapping files in the `pages/` directory to URL routes automatically.
+
+- `pages/index.js` → `/`
+- `pages/about.js` → `/about`
+- `pages/blog/[slug].js` → `/blog/:slug`
+
+## Key features
+
+<CardGroup cols={2}>
+  <Card title="File-system routing" icon="folder">
+    Every file in the `pages/` directory becomes a route automatically — no configuration needed.
+  </Card>
+  <Card title="Data fetching" icon="database">
+    Use `getStaticProps`, `getServerSideProps`, and `getStaticPaths` to fetch data at build time or request time.
+  </Card>
+  <Card title="API routes" icon="code">
+    Build API endpoints inside `pages/api/` without a separate server.
+  </Card>
+  <Card title="Static generation" icon="bolt">
+    Pre-render pages at build time for fast delivery via CDN.
+  </Card>
+</CardGroup>
+
+## How navigation works
+
+The Pages Router provides client-side navigation between pages using the `<Link>` component from `next/link`. When a link enters the user's viewport, Next.js prefetches the page in the background, making navigation nearly instant.
+
+## Rendering strategies
+
+The Pages Router supports multiple rendering strategies per page:
+
+| Strategy | Function | When to use |
+|---|---|---|
+| Static Generation | `getStaticProps` | Data available at build time |
+| Static Generation + dynamic paths | `getStaticPaths` | Dynamic routes with static data |
+| Server-side Rendering | `getServerSideProps` | Data must be fresh on each request |
+| Client-side Rendering | `useEffect` / SWR | User-specific or frequently updated data |
+
+## Getting started
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/pages/getting-started/installation">
+    Create a new Next.js application with the Pages Router.
+  </Card>
+  <Card title="Project structure" icon="folder-tree" href="/pages/getting-started/project-structure">
+    Learn the folder and file conventions in a Pages Router project.
+  </Card>
+  <Card title="Routing" icon="route" href="/pages/building/routing">
+    Understand file-system routing, layouts, and API routes.
+  </Card>
+  <Card title="Data fetching" icon="database" href="/pages/building/data-fetching">
+    Fetch data with `getStaticProps`, `getServerSideProps`, and more.
+  </Card>
+</CardGroup>

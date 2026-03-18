@@ -1,0 +1,58 @@
+---
+title: Getting Started with the App Router
+description: Learn how to create full-stack web applications with the Next.js App Router, React Server Components, and built-in optimizations.
+---
+
+Welcome to the Next.js App Router documentation! This section will help you build your first Next.js application and learn the core features you'll use in every project.
+
+## What is the App Router?
+
+The App Router is Next.js's modern routing system built on React Server Components. It supports nested layouts, streaming, Server Actions, and the `use cache` directive for fine-grained caching.
+
+<CardGroup cols={2}>
+  <Card title="Installation" icon="download" href="/app/getting-started/installation">
+    Create a new Next.js project and run it locally.
+  </Card>
+  <Card title="Project Structure" icon="folder-tree" href="/app/getting-started/project-structure">
+    Learn about file and folder conventions in Next.js.
+  </Card>
+  <Card title="Layouts and Pages" icon="layout" href="/app/getting-started/layouts-and-pages">
+    Create pages, layouts, and nested routes.
+  </Card>
+  <Card title="Fetching Data" icon="database" href="/app/getting-started/fetching-data">
+    Fetch data in Server Components and Route Handlers.
+  </Card>
+</CardGroup>
+
+## Pre-requisite knowledge
+
+The documentation assumes familiarity with:
+
+- HTML and CSS
+- JavaScript (ES6+)
+- React fundamentals (components, props, state)
+
+If you're new to React, start with the [React Foundations course](https://nextjs.org/learn/react-foundations) before proceeding.
+
+## Learning path
+
+<Steps>
+  <Step title="Install and create a project">
+    Use `create-next-app` to scaffold a new Next.js application with TypeScript, Tailwind CSS, and ESLint configured.
+  </Step>
+  <Step title="Understand project structure">
+    Learn the file and folder conventions, including routing files like `layout.tsx`, `page.tsx`, `loading.tsx`, and `error.tsx`.
+  </Step>
+  <Step title="Build pages and layouts">
+    Create your first pages and shared layouts using file-system routing.
+  </Step>
+  <Step title="Fetch and display data">
+    Use async Server Components to fetch data directly from databases or APIs.
+  </Step>
+  <Step title="Handle mutations">
+    Use Server Actions to mutate data and update the UI in a single server roundtrip.
+  </Step>
+  <Step title="Deploy your application">
+    Deploy to Vercel, a Node.js server, or export as a static site.
+  </Step>
+</Steps>

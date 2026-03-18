@@ -1,0 +1,139 @@
+---
+title: Project structure and organization
+description: Learn about the folder and file conventions in a Next.js Pages Router project.
+---
+
+This page provides an overview of the file and folder conventions in a Next.js project using the Pages Router.
+
+## Top-level folders
+
+| Folder | Description |
+|--------|-------------|
+| `pages` | Pages Router — each file becomes a route |
+| `public` | Static assets served at `/` |
+| `src` | Optional source folder for application code |
+| `components` | Shared React components (by convention) |
+| `lib` | Utility functions and shared logic (by convention) |
+| `styles` | Global stylesheets (by convention) |
+
+## Top-level files
+
+| File | Description |
+|------|-------------|
+| `next.config.js` | Configuration file for Next.js |
+| `package.json` | Project dependencies and scripts |
+| `tsconfig.json` | TypeScript configuration |
+| `.env` | Environment variables |
+| `.env.local` | Local environment variables (not committed) |
+| `.env.production` | Production environment variables |
+| `.env.development` | Development environment variables |
+| `.eslintrc.json` | ESLint configuration |
+| `.gitignore` | Files ignored by Git |
+| `next-env.d.ts` | TypeScript declarations for Next.js |
+
+## Pages Router conventions
+
+| File | Description |
+|------|-------------|
+| `pages/_app.js` | Custom App component |
+| `pages/_document.js` | Custom Document component |
+| `pages/_error.js` | Custom Error page |
+| `pages/404.js` | Custom 404 page |
+| `pages/500.js` | Custom 500 page |
+| `pages/api/*` | API route handlers |
+
+## Routes
+
+### Pages routing conventions
+
+| File convention | Route | Description |
+|----------------|-------|-------------|
+| `pages/index.js` | `/` | Home page |
+| `pages/about.js` | `/about` | About page |
+| `pages/blog/index.js` | `/blog` | Blog index |
+| `pages/blog/[slug].js` | `/blog/:slug` | Dynamic blog post |
+| `pages/blog/[...slug].js` | `/blog/*` | Catch-all route |
+| `pages/blog/[[...slug]].js` | `/blog` and `/blog/*` | Optional catch-all |
+
+### Nested routes
+
+Files nested in folders create nested routes:
+
+```
+pages/
+  index.js          → /
+  about.js          → /about
+  blog/
+    index.js        → /blog
+    [slug].js       → /blog/:slug
+  dashboard/
+    settings/
+      username.js   → /dashboard/settings/username
+```
+
+### API routes
+
+Files in `pages/api/` become API endpoints:
+
+```
+pages/
+  api/
+    hello.js         → /api/hello
+    users/
+      index.js       → /api/users
+      [id].js        → /api/users/:id
+```
+
+## Component organization
+
+Next.js does not enforce a specific structure outside of `pages/`. However, common conventions include:
+
+```
+my-app/
+  components/
+    ui/
+      button.js
+      card.js
+    layout/
+      header.js
+      footer.js
+  lib/
+    api.js
+    utils.js
+  pages/
+    index.js
+    about.js
+  public/
+    favicon.ico
+    images/
+  styles/
+    globals.css
+```
+
+## `src` directory
+
+You can place your application code in a `src/` directory rather than the root:
+
+```
+my-app/
+  src/
+    pages/
+      index.js
+    components/
+    styles/
+  public/
+  next.config.js
+```
+
+<Note>
+  The `src/pages` directory takes precedence over a root `pages` directory if both exist.
+</Note>
+
+## `public` folder
+
+Static files inside `public/` are served from the base URL. For example:
+
+- `public/avatar.png` → `/avatar.png`
+- `public/images/hero.jpg` → `/images/hero.jpg`
+
+The `public` directory is the only Next.js directory that can serve static files directly.

@@ -1,0 +1,221 @@
+---
+title: layout.js
+description: API reference for the layout.js file convention, including props, the root layout, and caveats around navigation, data fetching, and rendering.
+---
+
+The `layout` file defines a layout shared across route segments. Layouts persist across navigations and preserve state.
+
+```tsx filename="app/dashboard/layout.tsx"
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return <section>{children}</section>
+}
+```
+
+A **root layout** is the top-most layout in the root `app` directory and must define `<html>` and `<body>` tags.
+
+```tsx filename="app/layout.tsx"
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  )
+}
+```
+
+## Props
+
+<ParamField path="children" type="React.ReactNode" required>
+  The route segments the layout is wrapping. This will be a child Layout, Page, Loading, or Error component as applicable.
+</ParamField>
+
+<ParamField path="params" type="Promise<object>">
+  A promise that resolves to an object containing the dynamic route parameters from the root segment down to the layout.
+
+  ```tsx filename="app/dashboard/[team]/layout.tsx"
+  export default async function Layout({
+    children,
+    params,
+  }: {
+    children: React.ReactNode
+    params: Promise<{ team: string }>
+  }) {
+    const { team } = await params
+    return (
+      <section>
+        <h1>Team: {team}</h1>
+        {children}
+      </section>
+    )
+  }
+  ```
+
+  | Example route | URL | `params` |
+  | --- | --- | --- |
+  | `app/dashboard/[team]/layout.js` | `/dashboard/1` | `Promise<{ team: '1' }>` |
+  | `app/shop/[tag]/[item]/layout.js` | `/shop/1/2` | `Promise<{ tag: '1', item: '2' }>` |
+  | `app/blog/[...slug]/layout.js` | `/blog/1/2` | `Promise<{ slug: ['1', '2'] }>` |
+
+  <Note>In version 14 and earlier, `params` was a synchronous prop. Synchronous access still works in Next.js 15 for backwards compatibility but will be deprecated in the future.</Note>
+</ParamField>
+
+## Layout Props Helper
+
+Use `LayoutProps` to get strongly typed `params` and named slots inferred from your directory structure. This helper is globally available after type generation.
+
+```tsx filename="app/dashboard/layout.tsx"
+export default function Layout(props: LayoutProps<'/dashboard'>) {
+  return (
+    <section>
+      {props.children}
+      {/* If you have app/dashboard/@analytics: */}
+      {/* {props.analytics} */}
+    </section>
+  )
+}
+```
+
+## Root layout
+
+The `app` directory must include a root layout at `app/layout.js`. It must define `<html>` and `<body>` tags.
+
+<Note>Do not manually add `<head>` tags like `<title>` or `<meta>` to root layouts. Use the [Metadata API](/app/api-reference/functions/generate-metadata) instead, which handles streaming and de-duplicating `<head>` elements automatically.</Note>
+
+You can create multiple root layouts using route groups (e.g., `app/(shop)/layout.js` and `app/(marketing)/layout.js`). Navigating across multiple root layouts causes a full page load.
+
+## Caveats
+
+### Request object
+
+Layouts do not have access to the raw request object. Use `headers()` or `cookies()` from `next/headers`:
+
+```tsx filename="app/shop/layout.tsx"
+import { cookies } from 'next/headers'
+
+export default async function Layout({ children }) {
+  const cookieStore = await cookies()
+  const theme = cookieStore.get('theme')
+  return '...'
+}
+```
+
+### Query params
+
+Layouts do not rerender on navigation and cannot access updated search params. Use the Page `searchParams` prop, or read from a Client Component using `useSearchParams`.
+
+### Pathname
+
+Layouts do not rerender on navigation. Access the current pathname in a Client Component using `usePathname`.
+
+### Interaction with `loading.js`
+
+Because `loading.js` sits below `layout.js` in the component hierarchy, it cannot show a fallback for uncached data access in the layout. To ensure instant navigation:
+
+- Wrap runtime data access in a `<Suspense>` boundary with a fallback.
+- Move uncached data fetching from `layout.js` into `page.js`.
+
+```tsx filename="app/dashboard/layout.tsx"
+import { Suspense } from 'react'
+import { NavSkeleton } from './nav-skeleton'
+import { DashboardNav } from './dashboard-nav'
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <Suspense fallback={<NavSkeleton />}>
+        <DashboardNav />
+      </Suspense>
+      <main>{children}</main>
+    </>
+  )
+}
+```
+
+### Data fetching
+
+Layouts cannot pass data to their `children`, but you can fetch the same data in multiple places. Next.js automatically deduplicates `fetch` requests, and you can use React's `cache` for other functions.
+
+### Accessing child segments
+
+Layouts do not have access to route segments below them. Use `useSelectedLayoutSegment` or `useSelectedLayoutSegments` in a Client Component.
+
+## Examples
+
+### Metadata
+
+```tsx filename="app/layout.tsx"
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Next.js',
+}
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return '...'
+}
+```
+
+### Active nav links
+
+```tsx filename="app/ui/nav-links.tsx"
+'use client'
+
+import { usePathname } from 'next/navigation'
+import Link from 'next/link'
+
+export function NavLinks() {
+  const pathname = usePathname()
+
+  return (
+    <nav>
+      <Link className={`link ${pathname === '/' ? 'active' : ''}`} href="/">
+        Home
+      </Link>
+      <Link
+        className={`link ${pathname === '/about' ? 'active' : ''}`}
+        href="/about"
+      >
+        About
+      </Link>
+    </nav>
+  )
+}
+```
+
+### Displaying content based on params
+
+```tsx filename="app/dashboard/layout.tsx"
+export default async function DashboardLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode
+  params: Promise<{ team: string }>
+}) {
+  const { team } = await params
+
+  return (
+    <section>
+      <header>
+        <h1>Welcome to {team}'s Dashboard</h1>
+      </header>
+      <main>{children}</main>
+    </section>
+  )
+}
+```
+
+## Version history
+
+| Version | Changes |
+| --- | --- |
+| `v15.0.0-RC` | `params` is now a promise. A codemod is available. |
+| `v13.0.0` | `layout` introduced. |

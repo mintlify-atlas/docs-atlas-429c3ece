@@ -1,0 +1,179 @@
+---
+title: Installation
+description: How to create a new Next.js application with create-next-app. Set up TypeScript, ESLint, and configure your next.config.js file.
+---
+
+## System requirements
+
+- [Node.js 18.18](https://nodejs.org/) or later
+- macOS, Windows (including WSL), and Linux are supported
+
+## Automatic installation
+
+We recommend starting a new Next.js app using `create-next-app`, which sets up everything automatically for you.
+
+<Steps>
+  <Step title="Create a new project">
+    Run the following command and answer the prompts:
+
+    <CodeGroup>
+    ```bash npm
+    npx create-next-app@latest
+    ```
+    ```bash yarn
+    yarn create next-app
+    ```
+    ```bash pnpm
+    pnpm create next-app
+    ```
+    ```bash bun
+    bunx create-next-app
+    ```
+    </CodeGroup>
+
+    On installation, you'll see the following prompts:
+
+    ```txt
+    What is your project named? my-app
+    Would you like to use TypeScript? No / Yes
+    Would you like to use ESLint? No / Yes
+    Would you like to use Tailwind CSS? No / Yes
+    Would you like your code inside a `src/` directory? No / Yes
+    Would you like to use App Router? (recommended) No / Yes
+    Would you like to use Turbopack for `next dev`? No / Yes
+    Would you like to customize the import alias (@/* by default)? No / Yes
+    ```
+
+    Select **No** when prompted "Would you like to use App Router?" to use the Pages Router.
+  </Step>
+  <Step title="Start the development server">
+    <CodeGroup>
+    ```bash npm
+    npm run dev
+    ```
+    ```bash yarn
+    yarn dev
+    ```
+    ```bash pnpm
+    pnpm dev
+    ```
+    ```bash bun
+    bun dev
+    ```
+    </CodeGroup>
+
+    Visit [http://localhost:3000](http://localhost:3000) to view your application.
+  </Step>
+</Steps>
+
+## Manual installation
+
+To manually create a new Next.js app, install the required packages:
+
+<CodeGroup>
+```bash npm
+npm install next@latest react@latest react-dom@latest
+```
+```bash yarn
+yarn add next@latest react@latest react-dom@latest
+```
+```bash pnpm
+pnpm add next@latest react@latest react-dom@latest
+```
+```bash bun
+bun add next@latest react@latest react-dom@latest
+```
+</CodeGroup>
+
+Add the following scripts to your `package.json`:
+
+```json filename="package.json"
+{
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  }
+}
+```
+
+Create a `pages/` directory at the root of your project and add an `index.js` file:
+
+```jsx filename="pages/index.js"
+export default function Page() {
+  return <h1>Hello, Next.js!</h1>
+}
+```
+
+## Creating your first page
+
+Any file inside the `pages/` directory becomes a route. Create `pages/about.js`:
+
+```jsx filename="pages/about.js"
+export default function About() {
+  return <div>About</div>
+}
+```
+
+This page is now accessible at `/about`.
+
+## TypeScript
+
+Next.js has built-in TypeScript support. To add TypeScript to an existing project, rename a file to `.tsx` or `.ts` and run `next dev` — Next.js will automatically install the necessary packages.
+
+You can also create a `tsconfig.json` manually:
+
+```json filename="tsconfig.json"
+{
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
+}
+```
+
+## ESLint
+
+Next.js includes an integrated ESLint experience. Add `next lint` to your `package.json` scripts, then run it:
+
+```bash
+npx next lint
+```
+
+This sets up ESLint with the `eslint-config-next` configuration, which includes the recommended rules for Next.js.
+
+## next.config.js
+
+`next.config.js` is a configuration file at the root of your project for configuring Next.js:
+
+```js filename="next.config.js"
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+}
+
+module.exports = nextConfig
+```
+
+See the [next.config.js reference](/pages/api-reference/config/next-config-js) for all available options.

@@ -1,0 +1,210 @@
+---
+title: Self-Hosting
+description: Learn how to self-host your Next.js application on a Node.js server, Docker image, or static HTML files.
+---
+
+When deploying your Next.js app, you may want to configure how different features are handled based on your infrastructure.
+
+## Reverse proxy
+
+When self-hosting, it's recommended to use a reverse proxy (like nginx) in front of your Next.js server rather than exposing it directly to the internet. A reverse proxy can handle malformed requests, slow connection attacks, payload size limits, rate limiting, and other security concerns, offloading these tasks from the Next.js server.
+
+## Image optimization
+
+Image Optimization through `next/image` works self-hosted with zero configuration when deploying using `next start`. If you would prefer to have a separate service to optimize images, you can configure an image loader.
+
+Image Optimization can be used with a static export by defining a custom image loader in `next.config.js`. Note that images are optimized at runtime, not during the build.
+
+<Note>
+  On glibc-based Linux systems, Image Optimization may require additional configuration to prevent excessive memory usage.
+</Note>
+
+## Proxy
+
+Proxy works self-hosted with zero configuration when deploying using `next start`. Since it requires access to the incoming request, it is not supported when using a static export.
+
+Proxy uses the Edge runtime, a subset of all available Node.js APIs to help ensure low latency. If you do not want this, you can use the full Node.js runtime to run Proxy.
+
+## Environment variables
+
+Next.js can support both build time and runtime environment variables.
+
+**By default, environment variables are only available on the server.** To expose an environment variable to the browser, it must be prefixed with `NEXT_PUBLIC_`. However, these public environment variables will be inlined into the JavaScript bundle during `next build`.
+
+You can safely read environment variables on the server during dynamic rendering:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```tsx filename="app/page.ts"
+    import { connection } from 'next/server'
+
+    export default async function Component() {
+      await connection()
+      // cookies, headers, and other Request-time APIs
+      // will also opt into dynamic rendering, meaning
+      // this env variable is evaluated at runtime
+      const value = process.env.MY_VALUE
+      // ...
+    }
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```jsx filename="app/page.js"
+    import { connection } from 'next/server'
+
+    export default async function Component() {
+      await connection()
+      const value = process.env.MY_VALUE
+      // ...
+    }
+    ```
+  </Tab>
+</Tabs>
+
+This allows you to use a singular Docker image that can be promoted through multiple environments with different values.
+
+## Caching and ISR
+
+Next.js can cache responses, generated static pages, build outputs, and other static assets like images, fonts, and scripts.
+
+Caching and revalidating pages (with Incremental Static Regeneration) use the **same shared cache**. By default, this cache is stored to the filesystem (on disk) on your Next.js server. **This works automatically when self-hosting** using both the Pages and App Router.
+
+### Configuring caching
+
+By default, generated cache assets will be stored in memory (defaults to 50mb) and on disk. If you are hosting Next.js using a container orchestration platform like Kubernetes, each pod will have a copy of the cache.
+
+To configure the cache location when self-hosting, you can configure a custom handler in your `next.config.js` file:
+
+```jsx filename="next.config.js"
+module.exports = {
+  cacheHandler: require.resolve('./cache-handler.js'),
+  cacheMaxMemorySize: 0, // disable default in-memory caching
+}
+```
+
+Then, create `cache-handler.js` in the root of your project:
+
+```jsx filename="cache-handler.js"
+const cache = new Map()
+
+module.exports = class CacheHandler {
+  constructor(options) {
+    this.options = options
+  }
+
+  async get(key) {
+    // This could be stored anywhere, like durable storage
+    return cache.get(key)
+  }
+
+  async set(key, data, ctx) {
+    // This could be stored anywhere, like durable storage
+    cache.set(key, {
+      value: data,
+      lastModified: Date.now(),
+      tags: ctx.tags,
+    })
+  }
+
+  async revalidateTag(tags) {
+    // tags is either a string or an array of strings
+    tags = [tags].flat()
+    // Iterate over all entries in the cache
+    for (let [key, value] of cache) {
+      // If the value's tags include the specified tag, delete this entry
+      if (value.tags.some((tag) => tags.includes(tag))) {
+        cache.delete(key)
+      }
+    }
+  }
+
+  resetRequestCache() {}
+}
+```
+
+Using a custom cache handler allows you to ensure consistency across all pods hosting your Next.js application. For instance, you can save the cached values anywhere, like [Redis](https://github.com/vercel/next.js/tree/canary/examples/cache-handler-redis) or AWS S3.
+
+## Build cache
+
+Next.js generates an ID during `next build` to identify which version of your application is being served. The same build should be used to boot multiple containers.
+
+If you are rebuilding for each stage of your environment, you will need to generate a consistent build ID to use between containers:
+
+```jsx filename="next.config.js"
+module.exports = {
+  generateBuildId: async () => {
+    // This could be anything, using the latest git hash
+    return process.env.GIT_HASH
+  },
+}
+```
+
+## Multi-server deployments
+
+When running Next.js across multiple server instances, there are additional considerations to ensure consistent behavior.
+
+### Server Functions encryption key
+
+Next.js encrypts Server Function closure variables before sending them to the client. By default, a unique encryption key is generated for each build.
+
+When running multiple server instances, all instances must use the same encryption key. Set a consistent encryption key using the `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` environment variable:
+
+```bash
+NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=your-generated-key next build
+```
+
+### Deployment identifier
+
+Configure a `deploymentId` to enable version skew protection during rolling deployments:
+
+```js filename="next.config.js"
+module.exports = {
+  deploymentId: process.env.DEPLOYMENT_VERSION,
+}
+```
+
+### Shared cache
+
+By default, Next.js uses an in-memory cache that is not shared across instances. For consistent caching behavior, use `'use cache: remote'` with a custom cache handler that stores data in external storage.
+
+## Version skew
+
+When self-hosting across multiple instances or doing rolling deployments, version skew can cause:
+
+- **Missing assets**: The client requests JavaScript or CSS files that no longer exist on the server
+- **Server Function mismatches**: The client invokes a Server Function using an ID from a previous build that the server no longer recognizes
+- **Navigation failures**: Prefetched page data from an old deployment is incompatible with the new server
+
+Next.js uses the `deploymentId` to detect and handle version skew. When a mismatch is detected, Next.js triggers a hard navigation instead of a client-side navigation.
+
+## Streaming and Suspense
+
+The Next.js App Router supports streaming responses when self-hosting. If you are using nginx or a similar proxy, you will need to configure it to disable buffering to enable streaming:
+
+```js filename="next.config.js"
+module.exports = {
+  async headers() {
+    return [
+      {
+        source: '/:path*{/}?',
+        headers: [
+          {
+            key: 'X-Accel-Buffering',
+            value: 'no',
+          },
+        ],
+      },
+    ]
+  },
+}
+```
+
+## Usage with CDNs
+
+When using a CDN in front of your Next.js application, the page will include `Cache-Control: private` response header when dynamic APIs are accessed. If the page is fully prerendered to static, it will include `Cache-Control: public` to allow the page to be cached on the CDN.
+
+## `after`
+
+`after` is fully supported when self-hosting with `next start`.
+
+When stopping the server, ensure a graceful shutdown by sending `SIGINT` or `SIGTERM` signals and waiting. This allows the Next.js server to wait until after pending callback functions or promises used inside `after` have finished.

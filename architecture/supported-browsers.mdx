@@ -1,0 +1,137 @@
+---
+title: Supported Browsers
+description: Browser support and which JavaScript features are supported by Next.js — including polyfills, Browserslist configuration, and modern language features.
+---
+
+Next.js supports **modern browsers** with zero configuration:
+
+| Browser | Minimum version |
+|---|---|
+| Chrome | 111+ |
+| Edge | 111+ |
+| Firefox | 111+ |
+| Safari | 16.4+ |
+
+## Browserslist
+
+If you would like to target specific browsers or features, Next.js supports [Browserslist](https://browsersl.ist) configuration in your `package.json` file. Next.js uses the following Browserslist configuration by default:
+
+```json filename="package.json"
+{
+  "browserslist": ["chrome 111", "edge 111", "firefox 111", "safari 16.4"]
+}
+```
+
+## Polyfills
+
+Next.js injects [widely used polyfills](https://github.com/vercel/next.js/blob/canary/packages/next-polyfill-nomodule/src/index.js) automatically, including:
+
+<CardGroup cols={3}>
+  <Card title="fetch()" icon="arrow-down-to-line">
+    Replaces `whatwg-fetch` and `unfetch`.
+  </Card>
+  <Card title="URL" icon="link">
+    Replaces the `url` package (Node.js API).
+  </Card>
+  <Card title="Object.assign()" icon="merge">
+    Replaces `object-assign`, `object.assign`, and `core-js/object/assign`.
+  </Card>
+</CardGroup>
+
+If any of your dependencies include these polyfills, they are automatically eliminated from the production build to avoid duplication. Next.js only loads these polyfills for browsers that require them — the majority of global web traffic will not download them.
+
+### Custom Polyfills
+
+If your code or an external npm dependency requires features not supported by your target browsers, add polyfills yourself.
+
+<Tabs>
+  <Tab title="App Router">
+    Import polyfills in the `instrumentation-client.js` file:
+
+    ```ts filename="instrumentation-client.ts"
+    import './polyfills'
+    ```
+  </Tab>
+  <Tab title="Pages Router">
+    Add a top-level import in your Custom `<App>` (`pages/_app.tsx`) or in the individual component:
+
+    ```tsx filename="pages/_app.tsx" switcher
+    import './polyfills'
+
+    import type { AppProps } from 'next/app'
+
+    export default function MyApp({ Component, pageProps }: AppProps) {
+      return <Component {...pageProps} />
+    }
+    ```
+
+    ```jsx filename="pages/_app.jsx" switcher
+    import './polyfills'
+
+    export default function MyApp({ Component, pageProps }) {
+      return <Component {...pageProps} />
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### Conditionally Loading Polyfills
+
+The best approach is to isolate unsupported features to specific UI sections and conditionally load the polyfill only when needed:
+
+```ts filename="hooks/analytics.ts" switcher
+import { useCallback } from 'react'
+
+export const useAnalytics = () => {
+  const tracker = useCallback(async (data: unknown) => {
+    if (!('structuredClone' in globalThis)) {
+      import('polyfills/structured-clone').then((mod) => {
+        globalThis.structuredClone = mod.default
+      })
+    }
+
+    /* Do some work that uses structured clone */
+  }, [])
+
+  return tracker
+}
+```
+
+```js filename="hooks/analytics.js" switcher
+import { useCallback } from 'react'
+
+export const useAnalytics = () => {
+  const tracker = useCallback(async (data) => {
+    if (!('structuredClone' in globalThis)) {
+      import('polyfills/structured-clone').then((mod) => {
+        globalThis.structuredClone = mod.default
+      })
+    }
+
+    /* Do some work that uses structured clone */
+  }, [])
+
+  return tracker
+}
+```
+
+## JavaScript Language Features
+
+Next.js allows you to use the latest JavaScript features out of the box. In addition to [ES6 features](https://github.com/lukehoban/es6features), Next.js also supports:
+
+| Feature | Specification |
+|---|---|
+| [Async/await](https://github.com/tc39/ecmascript-asyncawait) | ES2017 |
+| [Object Rest/Spread Properties](https://github.com/tc39/proposal-object-rest-spread) | ES2018 |
+| [Dynamic `import()`](https://github.com/tc39/proposal-dynamic-import) | ES2020 |
+| [Optional Chaining](https://github.com/tc39/proposal-optional-chaining) | ES2020 |
+| [Nullish Coalescing](https://github.com/tc39/proposal-nullish-coalescing) | ES2020 |
+| [Class Fields](https://github.com/tc39/proposal-class-fields) and [Static Properties](https://github.com/tc39/proposal-static-class-features) | ES2022 |
+
+### TypeScript Features
+
+Next.js has built-in TypeScript support. See the [TypeScript reference](/app/api-reference/config/typescript) for details.
+
+### Customizing Babel Config (Advanced)
+
+You can customize the Babel config by creating a `.babelrc` file in the root of your project. See the [Babel guide](/pages/guides/debugging) for details.

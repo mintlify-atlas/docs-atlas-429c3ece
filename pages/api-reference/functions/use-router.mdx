@@ -1,0 +1,307 @@
+---
+title: useRouter
+description: Learn more about the Next.js Router API and access the router instance in your page with the useRouter hook.
+---
+
+If you want to access the `router` object inside any function component, you can use the `useRouter` hook:
+
+```jsx
+import { useRouter } from 'next/router'
+
+function ActiveLink({ children, href }) {
+  const router = useRouter()
+  const style = {
+    marginRight: 10,
+    color: router.asPath === href ? 'red' : 'black',
+  }
+
+  const handleClick = (e) => {
+    e.preventDefault()
+    router.push(href)
+  }
+
+  return (
+    <a href={href} onClick={handleClick} style={style}>
+      {children}
+    </a>
+  )
+}
+
+export default ActiveLink
+```
+
+<Note>
+  `useRouter` is a React Hook and cannot be used with classes. Use `withRouter` or wrap your class in a function component instead.
+</Note>
+
+## `router` object
+
+The `router` object returned by `useRouter` and `withRouter` includes:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `pathname` | `string` | Path for current route file (after `/pages`). Does not include `basePath`, `locale`, or trailing slash. |
+| `query` | `object` | Query string parsed to an object, including dynamic route parameters. Empty object during pre-rendering if the page doesn't use SSR. |
+| `asPath` | `string` | The path shown in the browser including search params. `basePath` and `locale` not included. |
+| `isFallback` | `boolean` | Whether the current page is in fallback mode. |
+| `basePath` | `string` | The active `basePath` (if enabled). |
+| `locale` | `string` | The active locale (if enabled). |
+| `locales` | `string[]` | All supported locales (if enabled). |
+| `defaultLocale` | `string` | The current default locale (if enabled). |
+| `isReady` | `boolean` | Whether router fields are updated client-side and ready for use. Only use inside `useEffect`. |
+| `isPreview` | `boolean` | Whether the application is in preview mode. |
+
+## Methods
+
+### `router.push`
+
+Navigates to a new URL:
+
+```js
+router.push(url, as, options)
+```
+
+- `url` — `UrlObject | String` — the URL to navigate to
+- `as` — `UrlObject | String` — optional decorator for the browser URL bar
+- `options` — optional object with:
+  - `scroll` — boolean, scroll to top after navigation. Defaults to `true`
+  - `shallow` — update URL without running data fetching methods. Defaults to `false`
+  - `locale` — string, indicates locale of the new page
+
+```jsx
+import { useRouter } from 'next/router'
+
+export default function Page() {
+  const router = useRouter()
+
+  return (
+    <button type="button" onClick={() => router.push('/about')}>
+      Click me
+    </button>
+  )
+}
+```
+
+#### With URL object
+
+```jsx
+import { useRouter } from 'next/router'
+
+export default function ReadMore({ post }) {
+  const router = useRouter()
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        router.push({
+          pathname: '/post/[pid]',
+          query: { pid: post.id },
+        })
+      }}
+    >
+      Click here to read more
+    </button>
+  )
+}
+```
+
+### `router.replace`
+
+Navigates to a URL without adding a new entry to the browser's history stack:
+
+```js
+router.replace(url, as, options)
+```
+
+The API is identical to `router.push`.
+
+### `router.prefetch`
+
+Prefetches pages for faster client-side transitions. Only useful for navigations without `next/link`:
+
+```jsx
+import { useCallback, useEffect } from 'react'
+import { useRouter } from 'next/router'
+
+export default function Login() {
+  const router = useRouter()
+
+  useEffect(() => {
+    // Prefetch the dashboard page
+    router.prefetch('/dashboard')
+  }, [router])
+
+  const handleSubmit = useCallback((e) => {
+    e.preventDefault()
+    // Perform login, then navigate
+    router.push('/dashboard')
+  }, [])
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <button type="submit">Login</button>
+    </form>
+  )
+}
+```
+
+### `router.back`
+
+Navigates back in history (equivalent to `window.history.back()`):
+
+```jsx
+import { useRouter } from 'next/router'
+
+export default function Page() {
+  const router = useRouter()
+
+  return (
+    <button type="button" onClick={() => router.back()}>
+      Click here to go back
+    </button>
+  )
+}
+```
+
+### `router.reload`
+
+Reloads the current URL (equivalent to `window.location.reload()`):
+
+```jsx
+import { useRouter } from 'next/router'
+
+export default function Page() {
+  const router = useRouter()
+
+  return (
+    <button type="button" onClick={() => router.reload()}>
+      Click here to reload
+    </button>
+  )
+}
+```
+
+### `router.events`
+
+Listen to different events happening inside the Next.js Router:
+
+| Event | Description |
+|-------|-------------|
+| `routeChangeStart(url, { shallow })` | Fires when a route starts to change |
+| `routeChangeComplete(url, { shallow })` | Fires when a route changed completely |
+| `routeChangeError(err, url, { shallow })` | Fires when there's an error changing routes |
+| `beforeHistoryChange(url, { shallow })` | Fires before changing the browser's history |
+| `hashChangeStart(url, { shallow })` | Fires when the hash will change but not the page |
+| `hashChangeComplete(url, { shallow })` | Fires when the hash has changed but not the page |
+
+```jsx
+import { useEffect } from 'react'
+import { useRouter } from 'next/router'
+
+export default function MyApp({ Component, pageProps }) {
+  const router = useRouter()
+
+  useEffect(() => {
+    const handleRouteChange = (url, { shallow }) => {
+      console.log(
+        `App is changing to ${url} ${
+          shallow ? 'with' : 'without'
+        } shallow routing`
+      )
+    }
+
+    router.events.on('routeChangeStart', handleRouteChange)
+
+    return () => {
+      router.events.off('routeChangeStart', handleRouteChange)
+    }
+  }, [router])
+
+  return <Component {...pageProps} />
+}
+```
+
+### `router.beforePopState`
+
+Listen to `popstate` events and perform actions before the router handles them:
+
+```jsx
+import { useEffect } from 'react'
+import { useRouter } from 'next/router'
+
+export default function Page() {
+  const router = useRouter()
+
+  useEffect(() => {
+    router.beforePopState(({ url, as, options }) => {
+      if (as !== '/' && as !== '/other') {
+        window.location.href = as
+        return false
+      }
+      return true
+    })
+  }, [router])
+
+  return <p>Welcome to the page</p>
+}
+```
+
+## `withRouter`
+
+If `useRouter` is not suitable, `withRouter` can inject the `router` object into any component as a prop:
+
+```jsx
+import { withRouter } from 'next/router'
+
+function Page({ router }) {
+  return <p>{router.pathname}</p>
+}
+
+export default withRouter(Page)
+```
+
+### TypeScript with `withRouter`
+
+```tsx
+import React from 'react'
+import { withRouter, NextRouter } from 'next/router'
+
+interface WithRouterProps {
+  router: NextRouter
+}
+
+interface MyComponentProps extends WithRouterProps {}
+
+class MyComponent extends React.Component<MyComponentProps> {
+  render() {
+    return <p>{this.props.router.pathname}</p>
+  }
+}
+
+export default withRouter(MyComponent)
+```
+
+## `next/compat/router`
+
+The `next/compat/router` export provides the same `useRouter` hook that works in both `app` and `pages` directories. It returns `NextRouter | null` instead of throwing when the Pages Router is not mounted:
+
+```jsx
+import { useEffect } from 'react'
+import { useRouter } from 'next/compat/router'
+import { useSearchParams } from 'next/navigation'
+
+const MyComponent = () => {
+  const router = useRouter() // may be null or a NextRouter instance
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    if (router && !router.isReady) {
+      return
+    }
+    const search = searchParams.get('search')
+    // ...
+  }, [router, searchParams])
+  // ...
+}
+```

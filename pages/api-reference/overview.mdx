@@ -1,0 +1,52 @@
+---
+title: API reference overview
+description: Next.js Pages Router API reference for components, file conventions, functions, and configuration.
+---
+
+The Pages Router API reference is organized into the following sections:
+
+<CardGroup cols={2}>
+  <Card title="Components" icon="puzzle-piece" href="/pages/api-reference/components/image">
+    Built-in Next.js components: `<Image>`, `<Link>`, `<Font>`, `<Script>`
+  </Card>
+  <Card title="File conventions" icon="file" href="/pages/api-reference/file-conventions/document">
+    Special files: `_document.js`, `_app.js`
+  </Card>
+  <Card title="Functions" icon="function-square" href="/pages/api-reference/functions/get-server-side-props">
+    Data fetching functions: `getServerSideProps`, `getStaticProps`, `getStaticPaths`, `useRouter`
+  </Card>
+  <Card title="Configuration" icon="gear" href="/pages/api-reference/config/next-config-js">
+    `next.config.js` options for the Pages Router
+  </Card>
+</CardGroup>
+
+## Components
+
+| Component | Description |
+|-----------|-------------|
+| [`<Image>`](/pages/api-reference/components/image) | Optimized image component built on the HTML `<img>` element |
+| [`<Link>`](/pages/api-reference/components/link) | Client-side navigation between routes |
+| [`<Font>`](/pages/api-reference/components/font) | Optimize and self-host fonts |
+| [`<Script>`](/pages/api-reference/components/script) | Load and optimize third-party scripts |
+
+## File conventions
+
+| File | Description |
+|------|-------------|
+| [`_document.js`](/pages/api-reference/file-conventions/document) | Customize the HTML document markup |
+| [`_app.js`](/pages/api-reference/file-conventions/app) | Customize the App component used to initialize pages |
+
+## Functions
+
+| Function | Description |
+|----------|-------------|
+| [`getServerSideProps`](/pages/api-reference/functions/get-server-side-props) | Fetch data on each request for SSR |
+| [`getStaticProps`](/pages/api-reference/functions/get-static-props) | Fetch data at build time for SSG |
+| [`getStaticPaths`](/pages/api-reference/functions/get-static-paths) | Define dynamic paths for SSG |
+| [`useRouter`](/pages/api-reference/functions/use-router) | Access the router object in components |
+
+## Configuration
+
+| Config | Description |
+|--------|-------------|
+| [`next.config.js`](/pages/api-reference/config/next-config-js) | Next.js configuration file options |

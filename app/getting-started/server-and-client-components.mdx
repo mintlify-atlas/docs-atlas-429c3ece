@@ -1,0 +1,134 @@
+---
+title: Server and Client Components
+description: Learn how to use React Server and Client Components to render parts of your application on the server or the client.
+---
+
+By default, layouts and pages are **Server Components**, which lets you fetch data and render parts of your UI on the server. When you need interactivity or browser APIs, use **Client Components** by adding the `'use client'` directive.
+
+## When to use each
+
+| Use Server Components when | Use Client Components when |
+|---------------------------|---------------------------|
+| Fetching data from databases or APIs | Using `useState`, `useReducer`, `useEffect` |
+| Accessing backend resources securely | Handling `onClick`, `onChange` events |
+| Reducing client-side JavaScript | Using browser-only APIs (`localStorage`, `window`) |
+| Improving initial page load (FCP) | Using custom hooks that depend on state or effects |
+| Rendering non-interactive content | Building interactive UI elements |
+
+## Server Components
+
+Server Components are the default in the App Router. They can be `async` functions:
+
+```tsx app/page.tsx
+export default async function Page() {
+  const data = await fetch('https://api.example.com/posts')
+  const posts = await data.json()
+
+  return (
+    <ul>
+      {posts.map((post) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+Server Components can:
+- Access server-side resources (databases, file systems)
+- Keep sensitive data (API keys, tokens) on the server
+- Reduce the JavaScript bundle sent to the browser
+
+## Client Components
+
+Add `'use client'` at the top of a file to mark it as a Client Component:
+
+```tsx app/ui/like-button.tsx
+'use client'
+
+import { useState } from 'react'
+
+export default function LikeButton({ likes }: { likes: number }) {
+  const [count, setCount] = useState(likes)
+
+  return (
+    <button onClick={() => setCount(count + 1)}>
+      {count} likes
+    </button>
+  )
+}
+```
+
+<Note>
+`'use client'` marks a boundary between Server and Client Components. All components imported into a Client Component file are treated as Client Components, even if they don't have `'use client'`.
+</Note>
+
+## Composing Server and Client Components
+
+You can import Client Components into Server Components:
+
+```tsx app/[id]/page.tsx
+import LikeButton from '@/app/ui/like-button'
+import { getPost } from '@/lib/data'
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const post = await getPost(id)
+
+  return (
+    <div>
+      <h1>{post.title}</h1>
+      <LikeButton likes={post.likes} />
+    </div>
+  )
+}
+```
+
+You can also pass Server Components as `children` to Client Components:
+
+```tsx app/layout.tsx
+import ClientSidebar from '@/components/ClientSidebar'
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <div>
+      <ClientSidebar>{children}</ClientSidebar>
+    </div>
+  )
+}
+```
+
+<Tip>
+Passing Server Components as `children` props keeps the Server Component rendered on the server, avoiding unnecessary client-side JavaScript.
+</Tip>
+
+## How Server and Client Components work together
+
+Next.js renders Server Components on the server and generates the **React Server Component Payload (RSC Payload)** — a compact binary representation of the rendered tree.
+
+On the client, React uses the RSC Payload to:
+1. Reconcile the Server and Client Component trees
+2. Update the DOM
+3. Hydrate Client Components with their JavaScript
+
+## Context and third-party components
+
+Some third-party components use `useState` or other client-side features without declaring `'use client'`. Wrap them in a Client Component:
+
+```tsx components/theme-provider.tsx
+'use client'
+
+import { ThemeProvider } from 'some-theme-library'
+
+export default function ClientThemeProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return <ThemeProvider>{children}</ThemeProvider>
+}
+```

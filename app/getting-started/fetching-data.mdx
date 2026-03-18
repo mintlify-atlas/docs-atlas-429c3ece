@@ -1,0 +1,139 @@
+---
+title: Fetching Data
+description: Learn how to fetch data in Server Components, Client Components, and Route Handlers, and how to stream data.
+---
+
+This page explains how to fetch data in Server Components and Client Components, and how to stream content that depends on data.
+
+## Fetching data in Server Components
+
+### With the `fetch` API
+
+Turn your component into an async function and await `fetch`:
+
+```tsx app/blog/page.tsx
+export default async function Page() {
+  const data = await fetch('https://api.vercel.app/blog')
+  const posts = await data.json()
+
+  return (
+    <ul>
+      {posts.map((post) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+<Note>
+Identical `fetch` requests in a React component tree are memoized by default — you can fetch data in the component that needs it instead of passing props down.
+</Note>
+
+### With an ORM or database
+
+Server Components run on the server, so credentials and query logic won't be in the client bundle:
+
+```tsx app/blog/page.tsx
+import { db, posts } from '@/lib/db'
+
+export default async function Page() {
+  const allPosts = await db.select().from(posts)
+
+  return (
+    <ul>
+      {allPosts.map((post) => (
+        <li key={post.id}>{post.title}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+## Fetching data in Client Components
+
+For client-side data fetching, use the `use` hook to read a Promise or fetch data with `useEffect`/SWR/React Query:
+
+```tsx app/blog/page.tsx
+import { use } from 'react'
+
+export default function Page({ blogsPromise }: { blogsPromise: Promise<Blog[]> }) {
+  const blogs = use(blogsPromise)
+
+  return (
+    <ul>
+      {blogs.map((blog) => (
+        <li key={blog.id}>{blog.title}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+## Streaming
+
+Streaming lets the server progressively send UI to the client. Use `<Suspense>` to wrap components that fetch data:
+
+```tsx app/blog/page.tsx
+import { Suspense } from 'react'
+import BlogList from '@/components/BlogList'
+
+export default function Page() {
+  return (
+    <div>
+      <h1>Blog</h1>
+      <Suspense fallback={<p>Loading posts...</p>}>
+        <BlogList />
+      </Suspense>
+    </div>
+  )
+}
+```
+
+The page shell renders immediately, and `<BlogList>` streams in once its data is ready.
+
+Alternatively, add a `loading.tsx` file to show a skeleton for the entire page:
+
+```tsx app/blog/loading.tsx
+export default function Loading() {
+  return <div>Loading...</div>
+}
+```
+
+## Caching fetched data
+
+Use the `use cache` directive to cache function results:
+
+```tsx app/lib/data.ts
+import { cacheLife } from 'next/cache'
+
+export async function getPosts() {
+  'use cache'
+  cacheLife('hours')
+  return db.select().from(posts)
+}
+```
+
+See the [Caching](/app/getting-started/caching) guide for more details.
+
+## Sequential vs parallel data fetching
+
+```tsx
+// Sequential (each waits for the previous)
+async function Page() {
+  const user = await getUser()
+  const posts = await getPosts(user.id) // waits for user
+}
+
+// Parallel (all start at the same time)
+async function Page() {
+  const [user, posts] = await Promise.all([
+    getUser(),
+    getPosts(),
+  ])
+}
+```
+
+<Tip>
+Use `Promise.all` for independent data fetches to reduce the total loading time.
+</Tip>
