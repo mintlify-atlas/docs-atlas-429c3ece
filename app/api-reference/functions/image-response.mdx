@@ -1,0 +1,141 @@
+---
+title: ImageResponse
+description: API reference for the ImageResponse constructor, which generates dynamic Open Graph and social media images using JSX and CSS.
+---
+
+The `ImageResponse` constructor generates dynamic images using JSX and CSS. Useful for creating Open Graph images, Twitter cards, and social media previews.
+
+```ts
+import { ImageResponse } from 'next/og'
+```
+
+## Parameters
+
+```ts
+new ImageResponse(
+  element: ReactElement,
+  options?: {
+    width?: number        // default: 1200
+    height?: number       // default: 630
+    emoji?: 'twemoji' | 'blobmoji' | 'noto' | 'openmoji'  // default: 'twemoji'
+    fonts?: {
+      name: string
+      data: ArrayBuffer
+      weight: number
+      style: 'normal' | 'italic'
+    }[]
+    debug?: boolean       // default: false
+    status?: number       // default: 200
+    statusText?: string
+    headers?: Record<string, string>
+  }
+)
+```
+
+<ParamField path="element" type="ReactElement" required>
+  The JSX element to render as an image.
+</ParamField>
+
+<ParamField path="options.width" type="number">
+  Width of the generated image in pixels. Defaults to `1200`.
+</ParamField>
+
+<ParamField path="options.height" type="number">
+  Height of the generated image in pixels. Defaults to `630`.
+</ParamField>
+
+<ParamField path="options.fonts" type="array">
+  Custom fonts to use. Each font needs `name`, `data` (ArrayBuffer), `weight`, and `style`.
+</ParamField>
+
+<ParamField path="options.debug" type="boolean">
+  Enable debug mode to show image boundaries. Defaults to `false`.
+</ParamField>
+
+## Supported HTML and CSS features
+
+`ImageResponse` supports common CSS including flexbox and absolute positioning, custom fonts, text wrapping, centering, and nested images. Advanced layouts like `display: grid` are **not** supported. See [Satori's documentation](https://github.com/vercel/satori#css) for the full list.
+
+## Constraints
+
+- Maximum bundle size: **500KB** (including JSX, CSS, fonts, images, and assets)
+- Only `ttf`, `otf`, and `woff` font formats are supported (`ttf` or `otf` preferred for speed)
+
+## Examples
+
+### Route Handler
+
+Use `ImageResponse` in a Route Handler to generate OG images:
+
+```ts app/api/og/route.ts
+import { ImageResponse } from 'next/og'
+
+export async function GET() {
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          height: '100%',
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: 'white',
+          padding: '40px',
+        }}
+      >
+        <h1 style={{ fontSize: 60, fontWeight: 700 }}>My App</h1>
+        <p style={{ fontSize: 30, color: '#666' }}>Built with Next.js</p>
+      </div>
+    ),
+    {
+      width: 1200,
+      height: 630,
+    }
+  )
+}
+```
+
+### File-based OG image
+
+You can also use the special `opengraph-image.tsx` file convention:
+
+```tsx app/opengraph-image.tsx
+import { ImageResponse } from 'next/og'
+
+export const alt = 'My App'
+export const size = { width: 1200, height: 630 }
+export const contentType = 'image/png'
+
+export default async function Image() {
+  return new ImageResponse(
+    (
+      <div style={{ fontSize: 128, background: 'white', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        My App
+      </div>
+    ),
+    { ...size }
+  )
+}
+```
+
+### Dynamic content
+
+```tsx app/blog/[slug]/opengraph-image.tsx
+import { ImageResponse } from 'next/og'
+
+export default async function Image({ params }: { params: { slug: string } }) {
+  const post = await fetch(`https://api.example.com/posts/${params.slug}`).then(r => r.json())
+
+  return new ImageResponse(
+    (
+      <div style={{ fontSize: 48, background: 'white', width: '100%', height: '100%', padding: '40px' }}>
+        <h1>{post.title}</h1>
+        <p style={{ color: '#666' }}>{post.description}</p>
+      </div>
+    ),
+    { width: 1200, height: 630 }
+  )
+}
+```

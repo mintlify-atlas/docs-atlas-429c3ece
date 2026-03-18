@@ -1,0 +1,75 @@
+---
+title: permanentRedirect
+description: API reference for the permanentRedirect function, which sends a 308 permanent redirect response.
+---
+
+The `permanentRedirect` function allows you to redirect the user to another URL with a **308 (Permanent Redirect)** HTTP status code. It can be used in Server Components, Client Components, Route Handlers, and Server Functions.
+
+<Note>
+If you need a temporary redirect (307), use [`redirect`](/app/api-reference/functions/redirect) instead.
+</Note>
+
+## Parameters
+
+```ts
+permanentRedirect(path, type?)
+```
+
+<ParamField path="path" type="string" required>
+  The URL to redirect to. Can be a relative or absolute path.
+</ParamField>
+
+<ParamField path="type" type="'replace' | 'push'">
+  The type of redirect. Defaults to `'push'` in Server Actions, `'replace'` everywhere else.
+</ParamField>
+
+## Returns
+
+`permanentRedirect` does not return a value.
+
+## Behavior
+
+- **Streaming context**: inserts a meta tag to emit the redirect client-side
+- **Server Action**: serves a 303 HTTP redirect to the caller
+- **Otherwise**: serves a 308 (Permanent) HTTP redirect
+
+## Example
+
+```tsx app/team/[id]/page.tsx
+import { permanentRedirect } from 'next/navigation'
+
+async function fetchTeam(id: string) {
+  const res = await fetch(`https://api.example.com/teams/${id}`)
+  if (!res.ok) return undefined
+  return res.json()
+}
+
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const team = await fetchTeam(id)
+
+  if (!team) {
+    permanentRedirect('/teams')
+  }
+
+  return <div>{team.name}</div>
+}
+```
+
+### With `RedirectType`
+
+```ts
+import { permanentRedirect, RedirectType } from 'next/navigation'
+
+permanentRedirect('/new-page', RedirectType.replace)
+// or
+permanentRedirect('/new-page', RedirectType.push)
+```
+
+<Note>
+`permanentRedirect` throws a `NEXT_REDIRECT` error internally to terminate rendering. Call it outside of `try/catch` blocks.
+</Note>

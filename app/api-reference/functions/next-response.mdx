@@ -1,0 +1,129 @@
+---
+title: NextResponse
+description: API reference for NextResponse, which extends the Web Response API with convenience methods for redirects, rewrites, and cookie management.
+---
+
+`NextResponse` extends the [Web `Response` API](https://developer.mozilla.org/docs/Web/API/Response) with additional convenience methods.
+
+```ts
+import { NextResponse } from 'next/server'
+```
+
+## `cookies`
+
+Read or mutate the `Set-Cookie` header of the response.
+
+### `set(name, value)`
+
+```ts
+let response = NextResponse.next()
+response.cookies.set('show-banner', 'false')
+// Response will have `Set-Cookie: show-banner=false` header
+return response
+```
+
+### `get(name)`
+
+```ts
+let response = NextResponse.next()
+// { name: 'show-banner', value: 'false', Path: '/home' }
+response.cookies.get('show-banner')
+```
+
+### `getAll()`
+
+```ts
+let response = NextResponse.next()
+response.cookies.getAll('experiments') // all values for 'experiments'
+response.cookies.getAll() // all cookies
+```
+
+### `has(name)`
+
+```ts
+let response = NextResponse.next()
+response.cookies.has('experiments') // true or false
+```
+
+### `delete(name)`
+
+```ts
+let response = NextResponse.next()
+response.cookies.delete('experiments') // returns true if deleted
+```
+
+## `json()`
+
+Produce a response with the given JSON body.
+
+```ts app/api/route.ts
+import { NextResponse } from 'next/server'
+
+export async function GET(request: Request) {
+  return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
+}
+```
+
+## `redirect()`
+
+Produce a response that redirects to a URL.
+
+```ts proxy.ts
+import { NextRequest, NextResponse } from 'next/server'
+
+export function proxy(request: NextRequest) {
+  return NextResponse.redirect(new URL('/new', request.url))
+}
+```
+
+Modify the URL before redirecting:
+
+```ts
+import { NextResponse } from 'next/server'
+
+const loginUrl = new URL('/login', request.url)
+loginUrl.searchParams.set('from', request.nextUrl.pathname)
+return NextResponse.redirect(loginUrl)
+```
+
+## `rewrite()`
+
+Produce a response that rewrites (proxies) the given URL while preserving the original URL shown in the browser.
+
+```ts
+import { NextResponse } from 'next/server'
+
+// Incoming: /about, browser shows /about
+// Rewritten: /proxy, browser still shows /about
+return NextResponse.rewrite(new URL('/proxy', request.url))
+```
+
+## `next()`
+
+Continue routing. Useful in proxy functions to return early and continue to the next handler.
+
+```ts
+import { NextResponse } from 'next/server'
+
+return NextResponse.next()
+```
+
+Forward modified headers upstream:
+
+```ts proxy.ts
+import { type NextRequest, NextResponse } from 'next/server'
+
+function proxy(request: NextRequest) {
+  const newHeaders = new Headers(request.headers)
+  newHeaders.set('x-version', '123')
+  return NextResponse.next({
+    request: {
+      headers: newHeaders,
+    },
+  })
+}
+```
+
+<Warning>
+Do not use `NextResponse.next({ headers })` to forward all incoming request headers to the client — this can leak sensitive data. Instead, use an allowlist approach and only forward known-safe headers.
+</Warning>

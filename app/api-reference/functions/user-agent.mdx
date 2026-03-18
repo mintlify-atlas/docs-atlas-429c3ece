@@ -1,0 +1,102 @@
+---
+title: userAgent
+description: API reference for the userAgent helper, which provides device and browser information from the incoming request.
+---
+
+The `userAgent` helper extends the [Web Request API](https://developer.mozilla.org/docs/Web/API/Request) to provide device, browser, and OS information from incoming requests.
+
+```ts
+import { NextRequest, NextResponse, userAgent } from 'next/server'
+```
+
+## Parameters
+
+<ParamField path="request" type="NextRequest" required>
+  The incoming `NextRequest` object.
+</ParamField>
+
+## Returns
+
+`userAgent(request)` returns an object with the following properties:
+
+<ResponseField name="isBot" type="boolean">
+  Whether the request comes from a known bot.
+</ResponseField>
+
+<ResponseField name="browser" type="object">
+  Information about the browser.
+  <Expandable title="properties">
+    <ResponseField name="name" type="string | undefined">
+      The browser name (e.g., `'Chrome'`, `'Firefox'`), or `undefined` if not identifiable.
+    </ResponseField>
+    <ResponseField name="version" type="string | undefined">
+      The browser version string, or `undefined`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="device" type="object">
+  Information about the device.
+  <Expandable title="properties">
+    <ResponseField name="model" type="string | undefined">
+      The device model, or `undefined`.
+    </ResponseField>
+    <ResponseField name="type" type="string | undefined">
+      Device type: `'mobile'`, `'tablet'`, `'console'`, `'smarttv'`, `'wearable'`, `'embedded'`, or `undefined` (desktop).
+    </ResponseField>
+    <ResponseField name="vendor" type="string | undefined">
+      The device vendor, or `undefined`.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="engine" type="object">
+  The browser engine.
+  <Expandable title="properties">
+    <ResponseField name="name" type="string | undefined">
+      Engine name (e.g., `'Blink'`, `'WebKit'`).
+    </ResponseField>
+    <ResponseField name="version" type="string | undefined">
+      Engine version.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="os" type="object">
+  The operating system.
+  <Expandable title="properties">
+    <ResponseField name="name" type="string | undefined">
+      OS name (e.g., `'macOS'`, `'Windows'`).
+    </ResponseField>
+    <ResponseField name="version" type="string | undefined">
+      OS version.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseField name="cpu" type="object">
+  CPU architecture information.
+  <Expandable title="properties">
+    <ResponseField name="architecture" type="string | undefined">
+      CPU architecture (e.g., `'amd64'`, `'arm64'`).
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example
+
+```ts proxy.ts
+import { NextRequest, NextResponse, userAgent } from 'next/server'
+
+export function proxy(request: NextRequest) {
+  const url = request.nextUrl
+  const { device } = userAgent(request)
+
+  // device.type: 'mobile', 'tablet', 'console', 'smarttv',
+  // 'wearable', 'embedded', or undefined (for desktop)
+  const viewport = device.type || 'desktop'
+
+  url.searchParams.set('viewport', viewport)
+  return NextResponse.rewrite(url)
+}
+```

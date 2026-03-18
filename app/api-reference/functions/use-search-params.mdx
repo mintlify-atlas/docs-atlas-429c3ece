@@ -1,0 +1,112 @@
+---
+title: useSearchParams
+description: API reference for the useSearchParams hook, which reads the current URL's query string in Client Components.
+---
+
+`useSearchParams` is a **Client Component** hook that lets you read the current URL's **query string**.
+
+`useSearchParams` returns a **read-only** version of the [`URLSearchParams`](https://developer.mozilla.org/docs/Web/API/URLSearchParams) interface.
+
+```tsx app/dashboard/search-bar.tsx
+'use client'
+
+import { useSearchParams } from 'next/navigation'
+
+export default function SearchBar() {
+  const searchParams = useSearchParams()
+
+  const search = searchParams.get('search')
+
+  // URL -> `/dashboard?search=my-project`
+  // `search` -> 'my-project'
+  return <>Search: {search}</>
+}
+```
+
+## Parameters
+
+`useSearchParams` does not take any parameters.
+
+## Returns
+
+`useSearchParams` returns a **read-only** [`URLSearchParams`](https://developer.mozilla.org/docs/Web/API/URLSearchParams) interface with these utility methods:
+
+| Method | Description |
+|--------|-------------|
+| `get(key)` | Returns the first value for the given key, or `null` if not found |
+| `getAll(key)` | Returns all values for the given key |
+| `has(key)` | Returns `true` if the key exists |
+| `keys()` | Iterator over all keys |
+| `values()` | Iterator over all values |
+| `entries()` | Iterator over all key/value pairs |
+| `forEach(fn)` | Iterates over all entries |
+| `toString()` | Returns the query string |
+
+### `get()` examples
+
+| URL | `searchParams.get('a')` |
+|-----|------------------------|
+| `/dashboard?a=1` | `'1'` |
+| `/dashboard?a=` | `''` |
+| `/dashboard?b=3` | `null` |
+| `/dashboard?a=1&a=2` | `'1'` (use `getAll()` for all values) |
+
+## Good to know
+
+- `useSearchParams` is a Client Component hook and is **not supported** in Server Components.
+- Wrap Client Components that use `useSearchParams` in a `<Suspense>` boundary to allow the rest of the route to prerender.
+- If you need search params in a Server Component, read the [`searchParams` prop](/app/api-reference/file-conventions/page) of the Page instead.
+
+## Example
+
+### Updating search params
+
+Use `useRouter` alongside `useSearchParams` to update the URL:
+
+```tsx app/dashboard/search-bar.tsx
+'use client'
+
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
+import { useCallback } from 'react'
+
+export default function SearchBar() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  const createQueryString = useCallback(
+    (name: string, value: string) => {
+      const params = new URLSearchParams(searchParams.toString())
+      params.set(name, value)
+      return params.toString()
+    },
+    [searchParams]
+  )
+
+  return (
+    <input
+      onChange={(e) => {
+        router.push(pathname + '?' + createQueryString('search', e.target.value))
+      }}
+      defaultValue={searchParams.get('search') ?? ''}
+    />
+  )
+}
+```
+
+### With Suspense boundary
+
+Always wrap components using `useSearchParams` in `<Suspense>` during prerendering:
+
+```tsx app/dashboard/page.tsx
+import { Suspense } from 'react'
+import SearchBar from './search-bar'
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SearchBar />
+    </Suspense>
+  )
+}
+```

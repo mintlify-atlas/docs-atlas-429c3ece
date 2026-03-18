@@ -1,0 +1,155 @@
+---
+title: Proxy (formerly Middleware)
+description: Learn how to use Proxy to run code before a request is completed — for redirects, rewrites, header modification, and more.
+---
+
+Proxy lets you run code before a request is completed. Based on the incoming request, you can modify the response by rewriting, redirecting, modifying request/response headers, or responding directly.
+
+<Note>
+Starting with Next.js 16, Middleware has been renamed to **Proxy** to better reflect its purpose. The functionality remains the same. If you're migrating from an older version, rename your `middleware.ts` file to `proxy.ts` and rename the `middleware` export to `proxy`.
+</Note>
+
+## Use cases
+
+Common scenarios where Proxy is useful:
+
+- Modifying request/response headers for all or specific pages
+- Rewriting to different pages based on A/B tests or experiments
+- Programmatic redirects based on request properties (auth, locale, device type)
+- Bot detection and rate limiting
+
+For simple static redirects, use the [`redirects`](/app/api-reference/config/next-config-js) option in `next.config.ts` instead. Proxy should be used when you need access to request data or more complex logic.
+
+<Warning>
+Proxy is not intended for slow data fetching. It runs in the edge runtime and has restricted access to Node.js APIs. Do not use Proxy as a full session management or authorization solution — use it for optimistic, fast checks only.
+</Warning>
+
+## Convention
+
+Create a `proxy.ts` (or `.js`) file in the project root, or inside `src/`:
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```ts proxy.ts
+    import { NextResponse } from 'next/server'
+    import type { NextRequest } from 'next/server'
+
+    export function proxy(request: NextRequest) {
+      return NextResponse.redirect(new URL('/home', request.url))
+    }
+
+    export const config = {
+      matcher: '/about/:path*',
+    }
+    ```
+  </Tab>
+  <Tab title="JavaScript">
+    ```js proxy.js
+    import { NextResponse } from 'next/server'
+
+    export function proxy(request) {
+      return NextResponse.redirect(new URL('/home', request.url))
+    }
+
+    export const config = {
+      matcher: '/about/:path*',
+    }
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+Only one `proxy.ts` file is supported per project. You can import helper functions from other files to keep your logic organized.
+</Note>
+
+## Matching paths
+
+Use the `matcher` config to control which paths trigger Proxy:
+
+```ts proxy.ts
+export const config = {
+  matcher: [
+    '/about/:path*',
+    '/dashboard/:path*',
+  ],
+}
+```
+
+Matcher values must be string literals — dynamic values from variables are not supported. Use a regex-style path string:
+
+| Pattern | Matches |
+|---------|---------|
+| `/about` | Exact path `/about` |
+| `/about/:path*` | `/about` and any sub-paths |
+| `/((?!api|_next/static|favicon.ico).*)` | All paths except `/api`, `/_next/static`, and `favicon.ico` |
+
+## Examples
+
+### Redirecting based on auth
+
+```ts proxy.ts
+import { NextRequest, NextResponse } from 'next/server'
+
+export function proxy(request: NextRequest) {
+  const token = request.cookies.get('auth-token')
+
+  if (!token && request.nextUrl.pathname.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  return NextResponse.next()
+}
+
+export const config = {
+  matcher: '/dashboard/:path*',
+}
+```
+
+### Rewriting based on locale
+
+```ts proxy.ts
+import { NextRequest, NextResponse } from 'next/server'
+
+const locales = ['en', 'fr', 'de']
+const defaultLocale = 'en'
+
+export function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  const pathnameHasLocale = locales.some(
+    (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
+  )
+
+  if (pathnameHasLocale) return NextResponse.next()
+
+  const locale = request.headers.get('accept-language')?.split(',')[0]?.split('-')[0] ?? defaultLocale
+  request.nextUrl.pathname = `/${locale}${pathname}`
+  return NextResponse.redirect(request.nextUrl)
+}
+
+export const config = {
+  matcher: ['/((?!_next).*)'],
+}
+```
+
+### Setting headers
+
+```ts proxy.ts
+import { NextRequest, NextResponse } from 'next/server'
+
+export function proxy(request: NextRequest) {
+  const response = NextResponse.next({
+    request: {
+      headers: new Headers(request.headers),
+    },
+  })
+
+  response.headers.set('x-pathname', request.nextUrl.pathname)
+  return response
+}
+```
+
+## API reference
+
+- [`NextRequest`](/app/api-reference/functions/next-request) — Extended Request with cookie helpers and `nextUrl`
+- [`NextResponse`](/app/api-reference/functions/next-response) — Extended Response with redirect, rewrite, and cookie methods
+- [`userAgent`](/app/api-reference/functions/user-agent) — Detect device and browser from the request

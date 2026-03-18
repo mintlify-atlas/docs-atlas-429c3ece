@@ -36,7 +36,7 @@ Every folder under `app/` maps to a URL segment. Special files control how each 
 | `error.tsx` | Error boundary UI for a segment and its children |
 | `not-found.tsx` | UI rendered when `notFound()` is thrown |
 | `route.ts` | Server-side API endpoint (replaces `pages/api/`) |
-| `middleware.ts` | Runs before a request is matched to a route |
+| `proxy.ts` | Runs before a request is matched to a route (formerly `middleware.ts` in Next.js < 16) |
 
 ### Nested layouts
 
@@ -225,11 +225,11 @@ export function GET() {
 }
 ```
 
-```tsx filename="middleware.ts"
+```tsx filename="proxy.ts"
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   return NextResponse.redirect(new URL('/home', request.url))
 }
 
@@ -239,7 +239,7 @@ export const config = {
 ```
 
 <Warning>
-Middleware always runs in the edge runtime. You cannot use Node.js APIs in `middleware.ts`.
+Proxy always runs in the edge runtime. You cannot use Node.js APIs in `proxy.ts`.
 </Warning>
 
 ## Request Lifecycle
@@ -248,8 +248,8 @@ Middleware always runs in the edge runtime. You cannot use Node.js APIs in `midd
   <Step title="Request arrives">
     A request hits the Next.js server (Node.js process or edge worker). The router server (`packages/next/src/server/lib/router-server.ts`) matches the URL to a route.
   </Step>
-  <Step title="Middleware runs">
-    If a `middleware.ts` file matches the request path, it executes in the edge runtime before any route handler. Middleware can redirect, rewrite, or modify request/response headers.
+  <Step title="Proxy runs">
+    If a `proxy.ts` file matches the request path, it executes in the edge runtime before any route handler. Proxy can redirect, rewrite, or modify request/response headers.
   </Step>
   <Step title="Route is rendered">
     For App Router routes: the server renders the component tree, executing Server Components and collecting their RSC Payload. For Pages Router routes: `getServerSideProps` or `getStaticProps` runs first, then the page component is rendered.

@@ -64,6 +64,7 @@
               "app/guides/sass",
               "app/guides/scripts",
               "app/guides/open-telemetry",
+              "app/guides/proxy",
               "app/guides/production-checklist"
             ]
           },
@@ -93,6 +94,14 @@
               "app/api-reference/functions/generate-metadata",
               "app/api-reference/functions/revalidate-path",
               "app/api-reference/functions/revalidate-tag",
+              "app/api-reference/functions/use-search-params",
+              "app/api-reference/functions/permanent-redirect",
+              "app/api-reference/functions/not-found",
+              "app/api-reference/functions/next-request",
+              "app/api-reference/functions/next-response",
+              "app/api-reference/functions/image-response",
+              "app/api-reference/functions/use-report-web-vitals",
+              "app/api-reference/functions/user-agent",
               "app/api-reference/directives/use-client",
               "app/api-reference/directives/use-server",
               "app/api-reference/directives/use-cache",
